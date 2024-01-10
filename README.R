@@ -1,4 +1,4 @@
-
+#Ordnerstruktur 
 Die Ordnerstruktur für Datenanalyse in einem GitHub-Repository kann je nach den spezifischen Anforderungen des Projekts variieren. Es gibt jedoch einige bewährte Praktiken und allgemeine Empfehlungen, die du berücksichtigen kannst. Hier ist eine mögliche Ordnerstruktur für ein Datenanalyseprojekt:
 
 data: Hier werden die Datenquellen gespeichert. Der Ordner raw enthält die Originaldaten, während processed die bereinigten oder verarbeiteten Daten enthält.
