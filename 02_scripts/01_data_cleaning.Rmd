@@ -1,29 +1,591 @@
 ---
 title: "01_data_cleaning"
 output: html_document
-date: "2024-01-09"
+date: "2024-01-10"
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+
+#install.packages("tidyr")
+#install.packages("readxl")
+#install.packages("openxlsx")
+#install.packages("dplyr")
+#install.packages("ggplot2")
+
+library(tidyr)
+library(readxl)
+library(dplyr)
+library(openxlsx)
+library(ggplot2)
+library(stringr)
+library(janitor)
+
 ```
 
-## R Markdown
+## Eine Tabelle im long Format erstellen, die alle Kombinationen an Fragebögen mit deren ID und Werten festhält
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+```{r }
+# Funktion zur Bereinigung und Umwandlung der Daten
+clean_and_transform_data <- function(sheet_name) {
+  # Dateipfad
+  file_path <- "/Users/miagrote/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/Datenextraktion - komplett.xlsx"
+  
+  # Daten einlesen
+  Datenextraktion_komplett <- read_excel(file_path, sheet = sheet_name)
+  
+  # Spaltennamen, die "mean sum score" enthalten
+  columns_to_select <- grep("mean sum score", names(Datenextraktion_komplett), value = TRUE)
+  
+  # Subset erstellen
+  subset_dat <- Datenextraktion_komplett[, c("Study", columns_to_select)]
+  
+  # Daten umstrukturieren
+  subset_dat_long <- subset_dat %>%
+    gather(key = "Variable", value = "Value", -Study)
+  
+  # NA's löschen
+  cleaned_subset_dat_long <- subset_dat_long %>%
+    filter(Value != "nicht zutreffend")
+  
+  return(cleaned_subset_dat_long)
+}
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
-summary(cars)
+# Liste der Blätter
+sheets <- c("BDI_CESD included only", "BDI_HADS included only", "BDI_PHQ included only",
+            "BDI_PROMIS included only", "CESD_HADS included only", "CESD_PHQ included only",
+            "CESD_PROMIS included only", "PHQ_PROMIS included only", "HADS_PHQ included only" , "HADS_PROMIS included only")
+
+# Leere Liste für die Ergebnisse
+result_list <- list()
+
+# Schleife über alle Blätter
+for (sheet in sheets) {
+  result_list[[sheet]] <- clean_and_transform_data(sheet)
+}
+
+# Ergebnisse anzeigen (optional)
+lapply(result_list, View)
+
+
+
+# Die ganze Liste in einen Datenframe umwandeln
+result_df <- dplyr::bind_rows(result_list)
+# Umwandlung der Spalte "Value" in beiden Datensätzen in numerischen Typ
+result_df$Value <- as.numeric(result_df$Value)
+
+file_path <- "~/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/result_data.csv"
+
+# Save the data frame to a CSV file at the specified location
+write.csv(result_df, file_path, row.names = FALSE)
+
 ```
 
-## Including Plots
+## Eine Tabelle im long Format erstellen, die alle Kombinationen an Fragebögen mit deren ID und Werten festhält FÜR GROUP size
 
-You can also embed plots, for example:
+```{r }
+# Funktion zur Bereinigung und Umwandlung der Daten
+clean_and_transform_data <- function(sheet_name) {
+  # Dateipfad
+  file_path <- "/Users/miagrote/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/Datenextraktion - komplett.xlsx"
+  
+  # Daten einlesen
+  Datenextraktion_komplett <- read_excel(file_path, sheet = sheet_name)
+  
+  # Spaltennamen, die "mean sum score" enthalten
+  columns_to_select <- grep("Group size", names(Datenextraktion_komplett), value = TRUE)
+  
+  # Subset erstellen
+  subset_dat <- Datenextraktion_komplett[, c("Study", columns_to_select)]
+  
+  # Daten umstrukturieren
+  subset_dat_long <- subset_dat %>%
+    gather(key = "Variable", value = "Value", -Study)
+  
+  # NA's löschen
+  cleaned_subset_dat_long <- subset_dat_long %>%
+    filter(Value != "nicht zutreffend")
+  
+  return(cleaned_subset_dat_long)
+}
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+
+# Liste der Blätter
+sheets <- c("BDI_CESD included only", "BDI_HADS included only", "BDI_PHQ included only",
+            "BDI_PROMIS included only", "CESD_HADS included only", "CESD_PHQ included only",
+            "CESD_PROMIS included only", "PHQ_PROMIS included only")
+
+# Leere Liste für die Ergebnisse
+result_list <- list()
+
+# Schleife über alle Blätter
+for (sheet in sheets) {
+  result_list[[sheet]] <- clean_and_transform_data(sheet)
+}
+
+# Ergebnisse anzeigen (optional)
+lapply(result_list, View)
+
+# Die ganze Liste in einen Datenframe umwandeln
+result_df_group <- dplyr::bind_rows(result_list)
+
+
+result_df_group <- result_df_group %>%
+  rename(groupsize = Value)
+
+# Umwandlung der Spalte "Value" in beiden Datensätzen in numerischen Typ
+#result_df_group$Value <- as.numeric(result_df$Value)
+
+
+file_path <- "~/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/result_data_group.csv"
+
+# Save the data frame to a CSV file at the specified location
+write.csv(result_df_group, file_path, row.names = FALSE)
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+# LookUp Tabellen hochladen und vorbereiten
+
+```{r}
+LookUp_PHQ <- read_excel("~/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/PHQ Raw Score to T-Score Conversion Table.xlsx")
+LookUp_HADS <- read_excel("~/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/LookUp_HADS.xlsx")
+LookUp_CESD <- read_excel("~/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/LookUp_CESD.xlsx")
+LookUp_BDI <- read_excel("~/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/LookUp_BDI.xlsx")
+
+## umbenennen zum Datensätze mergen
+
+LookUp_PHQ <- LookUp_PHQ %>% rename(Value = `PHQ Raw Score`)
+LookUp_BDI <- LookUp_BDI %>% rename(Value = `BDI Raw Score`)
+LookUp_HADS <- LookUp_HADS %>% rename(Value = `HADS Raw Score`)
+LookUp_CESD <- LookUp_CESD %>% rename(Value = `CESD Raw Score`)
+
+```
+
+
+
+# Für BDI
+
+```{r}
+
+# Datensatz und LookUp Tabelle joinen
+subset_BDI <- result_df[grepl("BDI", result_df$Variable), ]
+subset_BDI <- full_join(subset_BDI, LookUp_BDI, by = "Value")
+
+
+# Interpolation der Spalte PROMIS 
+subset_BDI$'PROMIS Score'<- approx(
+  x = subset_BDI$Value,
+  y = subset_BDI$'PROMIS T-score',
+  xout = subset_BDI$'Value'
+)$y
+
+subset_BDI <- subset_BDI %>%
+  drop_na(Study, Value) %>%
+  select(-`PROMIS T-score`)
+
+subset_BDI <- subset_BDI %>%
+  mutate(
+    BDI = Value,
+    `BDI - PROMIS Skala` = `PROMIS Score`,
+    Variable = gsub("BDI-II - ", "", Variable),
+    Variable = gsub("BDI - ", "", Variable)
+  ) %>%
+  select(-Value, -`PROMIS Score`)
+
+
+subset_BDI <- subset_BDI %>%
+  mutate(
+    Groupinfo = ifelse(grepl("Group", Variable), gsub("^(.*?)Group.*", "\\1", Variable), NA),
+    Variable = ifelse(grepl("Group", Variable), gsub("^.*Group", "Group", Variable), Variable)
+  )
+
+subset_BDI <- subset_BDI %>%
+  mutate(
+    Variable = str_replace_all(Variable, c("Group " = "", " - mean sum scores " = ""))
+  )
+
+
+
+# GROUP SIZE dazu bekommen 
+library(stringr)
+
+# Subset erstellen, das nur Zeilen mit "BDI" enthält
+subset_BDI_group <- result_df_group[grepl("BDI", result_df_group$Variable), ]
+#NAs löschen
+subset_BDI_group <- subset_BDI_group %>%
+  filter(!is.na(Variable))
+
+# Muster "Group size BDI" aus der Column "Variable" löschen
+subset_BDI_group <- subset_BDI_group %>%
+  mutate(Variable = str_replace(Variable, "Group size BDI", ""))
+
+
+# Column "Variable" aufteilen nach dem "Group"
+subset_BDI_group <- subset_BDI_group %>%
+  separate(Variable, into = c("Before_Group", "After_Group"), sep = "Group", extra = "merge", remove = FALSE)
+
+# Alles löschen, was vor "Group" in der Column "After_Group" steht
+subset_BDI_group <- subset_BDI_group %>%
+  mutate(After_Group = str_replace(After_Group, ".*Group", ""))
+
+# Columns "Before_Group" und "Variable" löschen
+subset_BDI_group <- subset_BDI_group %>%
+  select(-Before_Group, -Variable)
+
+subset_BDI_group <- subset_BDI_group %>%
+  rename(Variable = After_Group)
+
+# Annahme: subset_BDI_group ist dein Datensatz
+subset_BDI_group$Variable <- gsub("^\\s*([0-9]+)\\s*", "\\1", subset_BDI_group$Variable)
+
+
+
+# LEFT join um Gruppengröße mit dabei zu haben
+
+SUBSET_BDI <- left_join(subset_BDI, subset_BDI_group, by = c("Study", "Variable"))
+
+
+```
+
+# Für PHQ
+```{r}
+
+
+# Datensatz und LookUp Tabelle joinen
+subset_PHQ <- result_df[grepl("PHQ", result_df$Variable), ]
+subset_PHQ <- full_join(subset_PHQ, LookUp_PHQ, by = "Value")
+
+
+# Interpolation der Spalte PROMIS 
+subset_PHQ$'PROMIS Score'<- approx(
+  x = subset_PHQ$Value,
+  y = subset_PHQ$'PROMIS T-score',
+  xout = subset_PHQ$'Value'
+)$y
+
+subset_PHQ <- subset_PHQ %>%
+  drop_na(Study, Value) %>%
+  select(-`PROMIS T-score`)
+
+subset_PHQ <- subset_PHQ %>%
+  mutate(
+    PHQ = Value,
+    `PHQ - PROMIS Skala` = `PROMIS Score`,
+    Variable = gsub("PHQ - ", "", Variable)
+  ) %>%
+  select(-Value, -`PROMIS Score`)
+
+
+subset_PHQ <- subset_PHQ %>%
+  mutate(
+    Groupinfo = ifelse(grepl("Group", Variable), gsub("^(.*?)Group.*", "\\1", Variable), NA),
+    Variable = ifelse(grepl("Group", Variable), gsub("^.*Group", "Group", Variable), Variable)
+  )
+
+subset_PHQ <- subset_PHQ %>%
+  mutate(
+    Variable = str_replace_all(Variable, c("Group " = "", "- mean sum scores " = ""))
+  )
+
+
+
+# GROUP SIZE dazu bekommen 
+library(stringr)
+
+# Subset erstellen, das nur Zeilen mit "PHQ" enthält
+subset_PHQ_group <- result_df_group[grepl("PHQ", result_df_group$Variable), ]
+#NAs löschen
+subset_PHQ_group <- subset_PHQ_group %>%
+  filter(!is.na(Variable))
+
+# Muster "Group size PHQ" aus der Column "Variable" löschen
+subset_PHQ_group <- subset_PHQ_group %>%
+  mutate(Variable = str_replace(Variable, "Group size PHQ", ""))
+
+
+# Column "Variable" aufteilen nach dem "Group"
+subset_PHQ_group <- subset_PHQ_group %>%
+  separate(Variable, into = c("Before_Group", "After_Group"), sep = "Group", extra = "merge", remove = FALSE)
+
+# Alles löschen, was vor "Group" in der Column "After_Group" steht
+subset_PHQ_group <- subset_PHQ_group %>%
+  mutate(After_Group = str_replace(After_Group, ".*Group", ""))
+
+# Columns "Before_Group" und "Variable" löschen
+subset_PHQ_group <- subset_PHQ_group %>%
+  select(-Before_Group, -Variable)
+
+subset_PHQ_group <- subset_PHQ_group %>%
+  rename(Variable = After_Group)
+
+# Annahme: subset_PHQ_group ist dein Datensatz
+
+subset_PHQ_group$Variable <- gsub("^\\s*([0-9]+)\\s*", "\\1", subset_PHQ_group$Variable)
+
+
+
+# LEFT join um Gruppengröße mit dabei zu haben
+subset_PHQ$Variable <- sub("(\\d)\\s", "\\1", subset_PHQ$Variable)
+
+SUBSET_PHQ <- left_join(subset_PHQ, subset_PHQ_group, by = c("Study", "Variable"))
+
+
+
+```
+
+# Für HADS
+
+```{r}
+
+# Datensatz und LookUp Tabelle joinen
+subset_HADS <- result_df[grepl("HADS", result_df$Variable), ]
+subset_HADS <- full_join(subset_HADS, LookUp_HADS, by = "Value")
+
+
+# Interpolation der Spalte PROMIS 
+subset_HADS$'PROMIS Score'<- approx(
+  x = subset_HADS$Value,
+  y = subset_HADS$'PROMIS T-score',
+  xout = subset_HADS$'Value'
+)$y
+
+subset_HADS <- subset_HADS %>%
+  drop_na(Study, Value) %>%
+  select(-`PROMIS T-score`)
+
+subset_HADS <- subset_HADS %>%
+  mutate(
+    HADS = Value,
+    `HADS - PROMIS Skala` = `PROMIS Score`,
+    Variable = gsub("HADS - ", "", Variable)
+  ) %>%
+  select(-Value, -`PROMIS Score`)
+
+
+subset_HADS <- subset_HADS %>%
+  mutate(
+    Groupinfo = ifelse(grepl("Group", Variable), gsub("^(.*?)Group.*", "\\1", Variable), NA),
+    Variable = ifelse(grepl("Group", Variable), gsub("^.*Group", "Group", Variable), Variable)
+  )
+
+subset_HADS <- subset_HADS %>%
+  mutate(
+    Variable = str_replace_all(Variable, c("Group " = "", "- mean sum scores " = ""))
+  )
+
+
+
+# GROUP SIZE dazu bekommen 
+library(stringr)
+
+# Subset erstellen, das nur Zeilen mit "HADS" enthält
+subset_HADS_group <- result_df_group[grepl("HADS", result_df_group$Variable), ]
+#NAs löschen
+subset_HADS_group <- subset_HADS_group %>%
+  filter(!is.na(Variable))
+
+# Muster "Group size HADS" aus der Column "Variable" löschen
+subset_HADS_group <- subset_HADS_group %>%
+  mutate(Variable = str_replace(Variable, "Group size HADS", ""))
+
+
+# Column "Variable" aufteilen nach dem "Group"
+subset_HADS_group <- subset_HADS_group %>%
+  separate(Variable, into = c("Before_Group", "After_Group"), sep = "Group", extra = "merge", remove = FALSE)
+
+# Alles löschen, was vor "Group" in der Column "After_Group" steht
+subset_HADS_group <- subset_HADS_group %>%
+  mutate(After_Group = str_replace(After_Group, ".*Group", ""))
+
+# Columns "Before_Group" und "Variable" löschen
+subset_HADS_group <- subset_HADS_group %>%
+  select(-Before_Group, -Variable)
+
+subset_HADS_group <- subset_HADS_group %>%
+  rename(Variable = After_Group)
+
+# Annahme: subset_HADS_group ist dein Datensatz
+
+subset_HADS_group$Variable <- gsub("^\\s*([0-9]+)\\s*", "\\1", subset_HADS_group$Variable)
+
+
+
+# LEFT join um Gruppengröße mit dabei zu haben
+subset_HADS$Variable <- sub("(\\d)\\s", "\\1", subset_HADS$Variable)
+
+SUBSET_HADS <- left_join(subset_HADS, subset_HADS_group, by = c("Study", "Variable"))
+
+```
+
+
+# Für CESD
+
+```{r}
+
+# Datensatz und LookUp Tabelle joinen
+subset_CESD <- result_df[grepl("CESD", result_df$Variable), ]
+subset_CESD <- full_join(subset_CESD, LookUp_CESD, by = "Value")
+
+
+# Interpolation der Spalte PROMIS 
+subset_CESD$'PROMIS Score'<- approx(
+  x = subset_CESD$Value,
+  y = subset_CESD$'PROMIS T-score',
+  xout = subset_CESD$'Value'
+)$y
+
+subset_CESD <- subset_CESD %>%
+  drop_na(Study, Value) %>%
+  select(-`PROMIS T-score`)
+
+subset_CESD <- subset_CESD %>%
+  mutate(
+    CESD = Value,
+    `CESD - PROMIS Skala` = `PROMIS Score`,
+    Variable = gsub("CESD - ", "", Variable)
+  ) %>%
+  select(-Value, -`PROMIS Score`)
+
+
+subset_CESD <- subset_CESD %>%
+  mutate(
+    Groupinfo = ifelse(grepl("Group", Variable), gsub("^(.*?)Group.*", "\\1", Variable), NA),
+    Variable = ifelse(grepl("Group", Variable), gsub("^.*Group", "Group", Variable), Variable)
+  )
+
+subset_CESD <- subset_CESD %>%
+  mutate(
+    Variable = str_replace_all(Variable, c("Group " = "", "- mean sum scores " = ""))
+  )
+
+
+
+# GROUP SIZE dazu bekommen 
+library(stringr)
+
+# Subset erstellen, das nur Zeilen mit "CESD" enthält
+subset_CESD_group <- result_df_group[grepl("CESD", result_df_group$Variable), ]
+#NAs löschen
+subset_CESD_group <- subset_CESD_group %>%
+  filter(!is.na(Variable))
+
+# Muster "Group size CESD" aus der Column "Variable" löschen
+subset_CESD_group <- subset_CESD_group %>%
+  mutate(Variable = str_replace(Variable, "Group size CESD", ""))
+
+
+# Column "Variable" aufteilen nach dem "Group"
+subset_CESD_group <- subset_CESD_group %>%
+  separate(Variable, into = c("Before_Group", "After_Group"), sep = "Group", extra = "merge", remove = FALSE)
+
+# Alles löschen, was vor "Group" in der Column "After_Group" steht
+subset_CESD_group <- subset_CESD_group %>%
+  mutate(After_Group = str_replace(After_Group, ".*Group", ""))
+
+# Columns "Before_Group" und "Variable" löschen
+subset_CESD_group <- subset_CESD_group %>%
+  select(-Before_Group, -Variable)
+
+subset_CESD_group <- subset_CESD_group %>%
+  rename(Variable = After_Group)
+
+# Annahme: subset_CESD_group ist dein Datensatz
+
+subset_CESD_group$Variable <- gsub("^\\s*([0-9]+)\\s*", "\\1", subset_CESD_group$Variable)
+
+
+
+# LEFT join um Gruppengröße mit dabei zu haben
+subset_CESD$Variable <- sub("(\\d)\\s", "\\1", subset_CESD$Variable)
+
+SUBSET_CESD <- left_join(subset_CESD, subset_CESD_group, by = c("Study", "Variable"))
+
+```
+
+# Für PROMIS
+
+```{r}
+
+# Datensatz und LookUp Tabelle joinen
+subset_PROMIS <- result_df[grepl("PROMIS", result_df$Variable), ]
+
+
+# Interpolation der Spalte PROMIS 
+subset_PROMIS$'PROMIS Score'<- approx(
+  x = subset_PROMIS$Value,
+  y = subset_PROMIS$'PROMIS T-score',
+  xout = subset_PROMIS$'Value'
+)$y
+
+# VALUE in PROMIS umwandeln
+
+subset_PROMIS <- subset_PROMIS %>%
+  mutate(
+    PROMIS = Value,
+    Variable = gsub("PROMIS - ", "", Variable)
+  ) 
+
+
+subset_PROMIS <- subset_PROMIS %>%
+  mutate(
+    Groupinfo = ifelse(grepl("Group", Variable), gsub("^(.*?)Group.*", "\\1", Variable), NA),
+    Variable = ifelse(grepl("Group", Variable), gsub("^.*Group", "Group", Variable), Variable)
+  )
+
+subset_PROMIS <- subset_PROMIS %>%
+  mutate(
+    Variable = str_replace_all(Variable, c("Group " = "", " - mean sum scores " = ""))
+  )
+
+
+
+# GROUP SIZE dazu bekommen 
+library(stringr)
+
+# Subset erstellen, das nur Zeilen mit "PROMIS" enthält
+subset_PROMIS_group <- result_df_group[grepl("PROMIS", result_df_group$Variable), ]
+
+#NAs löschen
+subset_PROMIS_group <- subset_PROMIS_group %>%
+  filter(!is.na(Variable))
+
+# Muster "Group size PROMIS" aus der Column "Variable" löschen
+subset_PROMIS_group <- subset_PROMIS_group %>%
+  mutate(Variable = str_replace(Variable, "Group size PROMIS", ""))
+
+
+# Column "Variable" aufteilen nach dem "Group"
+subset_PROMIS_group <- subset_PROMIS_group %>%
+  separate(Variable, into = c("Before_Group", "After_Group"), sep = "Group", extra = "merge", remove = FALSE)
+
+# Alles löschen, was vor "Group" in der Column "After_Group" steht
+subset_PROMIS_group <- subset_PROMIS_group %>%
+  mutate(After_Group = str_replace(After_Group, ".*Group", ""))
+
+# Columns "Before_Group" und "Variable" löschen
+subset_PROMIS_group <- subset_PROMIS_group %>%
+  select(-Before_Group, -Variable)
+
+subset_PROMIS_group <- subset_PROMIS_group %>%
+  rename(Variable = After_Group)
+
+# Annahme: subset_PROMIS_group ist dein Datensatz
+
+subset_PROMIS_group$Variable <- gsub("^\\s*([0-9]+)\\s*", "\\1", subset_PROMIS_group$Variable)
+
+
+
+# LEFT join um Gruppengröße mit dabei zu haben
+
+SUBSET_PROMIS <- left_join(subset_PROMIS, subset_PROMIS_group, by = c("Study", "Variable"))
+SUBSET_PROMIS <- SUBSET_PROMIS %>%
+  select(-`PROMIS Score`, -Value)
+
+
+```
+
+
+
+
+

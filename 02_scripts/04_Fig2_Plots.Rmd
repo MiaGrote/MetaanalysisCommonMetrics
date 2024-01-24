@@ -1,0 +1,473 @@
+---
+title: "02_script_for_plots"
+output: html_document
+date: "2024-01-10"
+---
+
+# Left join für Plots 
+
+```{r }
+BDIxCESD <- left_join(SUBSET_BDI, SUBSET_CESD, by = c("Study", "Variable")) %>%
+  filter(complete.cases(BDI, CESD))
+
+BDIxHADS <- left_join(SUBSET_BDI, SUBSET_HADS, by = c("Study", "Variable")) %>%
+  filter(complete.cases(BDI, HADS))
+
+BDIxPHQ <- left_join(SUBSET_BDI, SUBSET_PHQ, by = c("Study", "Variable")) %>%
+  filter(complete.cases(BDI, PHQ))
+
+BDIxPROMIS <- left_join(SUBSET_BDI, SUBSET_PROMIS, by = c("Study", "Variable")) %>%
+  filter(complete.cases(BDI, PROMIS))
+
+
+
+CESDxHADS <- left_join(SUBSET_CESD, SUBSET_HADS, by = c("Study", "Variable")) %>%
+  filter(complete.cases(CESD, HADS))
+
+CESDxPHQ <- left_join(SUBSET_CESD, SUBSET_PHQ, by = c("Study", "Variable")) %>%
+  filter(complete.cases(CESD, PHQ))
+
+CESDxPROMIS <- left_join(SUBSET_CESD, SUBSET_PROMIS, by = c("Study", "Variable")) %>%
+  filter(complete.cases(CESD, PROMIS))
+
+
+
+HADSxPHQ <- left_join(SUBSET_HADS, SUBSET_PHQ, by = c("Study", "Variable")) %>%
+  filter(complete.cases(HADS, PHQ))
+
+HADSxPROMIS <- left_join(SUBSET_HADS, SUBSET_PROMIS, by = c("Study", "Variable")) %>%
+  filter(complete.cases(HADS, PROMIS))
+
+
+PHQxPROMIS <- left_join(SUBSET_PHQ, SUBSET_PROMIS, by = c("Study", "Variable")) %>%
+  filter(complete.cases(PHQ, PROMIS))
+
+
+```
+
+# Vorbereitung Plot mit facets: Datensatz zu einem großen mergen
+
+```{r }
+# einen Datensatz aus allen erstellen mit Wert 1 und Wert 2 und einer Zeile der Fragebogenkombination 
+
+BDIxCESD_short <- BDIxCESD %>%
+  mutate(`Wert 1` = `BDI - PROMIS Skala`,
+         `Wert 2` = `CESD - PROMIS Skala`,
+         `Fragebogenkombination` = "BDIxCESD")
+#write.csv(BDIxCESD_short, "BDIxCESD_short.csv", row.names = FALSE)
+
+
+BDIxHADS_short <- BDIxHADS %>%
+  mutate(`Wert 1` = `BDI - PROMIS Skala`,
+         `Wert 2` = `HADS - PROMIS Skala`,
+         `Fragebogenkombination` = "BDIxHADS")
+#write.csv(BDIxHADS_short, "BDIxHADS_short.csv", row.names = FALSE)
+
+
+BDIxPHQ_short <- BDIxPHQ %>%
+  mutate(`Wert 1` = `BDI - PROMIS Skala`,
+         `Wert 2` = `PHQ - PROMIS Skala`,
+         `Fragebogenkombination` = "BDIxPHQ")
+#write.csv(BDIxPHQ_short, "BDIxPHQ_short.csv", row.names = FALSE)
+
+
+
+BDIxPROMIS_short <- BDIxPROMIS %>%
+  mutate(`Wert 1` = `BDI - PROMIS Skala`,
+         `Wert 2` = `PROMIS`,
+         `Fragebogenkombination` = "BDIxPROMIS")
+#write.csv(BDIxPROMIS_short, "BDIxPROMIS_short.csv", row.names = FALSE)
+
+
+
+CESDxHADS_short <- CESDxHADS %>%
+  mutate(`Wert 1` = `CESD - PROMIS Skala`,
+         `Wert 2` = `HADS - PROMIS Skala`,
+         `Fragebogenkombination` = "CESDxHADS")
+#write.csv(CESDxHADS_short, "CESDxHADS_short.csv", row.names = FALSE)
+
+
+CESDxPHQ_short  <- CESDxPHQ %>%
+  mutate(`Wert 1` = `CESD - PROMIS Skala`,
+         `Wert 2` = `PHQ - PROMIS Skala`,
+         `Fragebogenkombination` = "CESDxPHQ")
+#write.csv(CESDxPHQ_short, "CESDxPHQ_short.csv", row.names = FALSE)
+
+
+CESDxPROMIS_short  <- CESDxPROMIS %>%
+  mutate(`Wert 1` = `CESD - PROMIS Skala`,
+         `Wert 2` = `PROMIS`,
+         `Fragebogenkombination` = "CESDxPROMIS")
+#write.csv(CESDxPROMIS_short, "CESDxPROMIS_short.csv", row.names = FALSE)
+
+
+
+
+HADSxPHQ_short  <- HADSxPHQ %>%
+  mutate(`Wert 1` = `HADS - PROMIS Skala`,
+         `Wert 2` = `PHQ - PROMIS Skala`,
+         `Fragebogenkombination` = "HADSxPHQ")
+#write.csv(HADSxPHQ_short, "HADSxPHQ_short.csv", row.names = FALSE)
+
+
+HADSxPROMIS_short <- HADSxPROMIS %>%
+  mutate(`Wert 1` = `HADS - PROMIS Skala`,
+         `Wert 2` = `PROMIS`,
+         `Fragebogenkombination` = "HADSxPROMIS")
+#write.csv(HADSxPROMIS_short, "HADSxPROMIS_short.csv", row.names = FALSE)
+
+
+
+PHQxPROMIS_short <- PHQxPROMIS %>%
+  mutate(`Wert 1` = `PHQ - PROMIS Skala`,
+         `Wert 2` = `PROMIS`,
+         `Fragebogenkombination` = "PHQxPROMIS")
+#write.csv(PHQxPROMIS_short, "PHQxPROMIS_short.csv", row.names = FALSE)
+
+
+
+
+```
+
+
+
+# Plot einzeln
+```{r }
+library(ggplot2)
+#install.packages("hrbrthemes")
+library(hrbrthemes)
+
+# BDIxCESD
+
+BDIxCESD$groupsize.y <- as.numeric(as.character(BDIxCESD$groupsize.y))  # Um sicherzustellen, dass es numerisch ist
+
+BDIxCESD_plot<- ggplot(BDIxCESD, aes(x = `BDI - PROMIS Skala`, y = `CESD - PROMIS Skala`)) + 
+  geom_point(aes(size = groupsize.y)) +
+  geom_smooth(method = "lm", color = "red", fill = "#69b3a2", se = TRUE) +
+  xlim(40, 90) +
+  ylim(40, 90) +
+  labs(size = "Gruppengröße") +  # Hier wird der Name der Punktgröße geändert
+  theme_ipsum()
+
+#ggsave("BDIxCESD_plot.png", plot = BDIxCESD_plot, device = "png", width = 6, height = 4, units = "in")
+
+
+
+# BDIxHADS
+
+BDIxHADS$groupsize.y <- as.numeric(as.character(BDIxHADS$groupsize.y))  # Um sicherzustellen, dass es numerisch ist
+
+BDIxHADS_plot<- ggplot(BDIxHADS, aes(x = `BDI - PROMIS Skala`, y = `HADS - PROMIS Skala`)) + 
+  geom_point(aes(size = groupsize.y)) +
+  geom_smooth(method = "lm", color = "red", fill = "#69b3a2", se = TRUE) +
+  xlim(40, 90) +
+  ylim(40, 90) +
+  labs(size = "Gruppengröße") +  # Hier wird der Name der Punktgröße geändert
+  theme_ipsum()
+  
+#ggsave("BDIxHADS_plot.png", plot = BDIxHADS_plot, device = "png", width = 6, height = 4, units = "in")
+
+  
+#BDIxPHQ
+
+BDIxPHQ$groupsize.y <- as.numeric(as.character(BDIxPHQ$groupsize.y))  
+
+BDIxPHQ_plot<- ggplot(BDIxPHQ, aes(x = `BDI - PROMIS Skala`, y = `PHQ - PROMIS Skala`)) + 
+  geom_point(aes(size = groupsize.y)) +
+  geom_smooth(method = "lm", color = "red", fill = "#69b3a2", se = TRUE) +
+  xlim(40, 90) +
+  ylim(40, 90) +
+  labs(size = "Gruppengröße") +  # Hier wird der Name der Punktgröße geändert
+  theme_ipsum()
+
+#ggsave("BDIxPHQ_plot.png", plot = BDIxPHQ_plot, device = "png", width = 6, height = 4, units = "in")
+
+
+
+# BDIxPROMIS
+
+BDIxPROMIS$groupsize.y <- as.numeric(as.character(BDIxPROMIS$groupsize.y))  # Um sicherzustellen, dass es numerisch ist
+
+# ggplot-Befehl für BDIxPROMIS
+BDIxPROMIS_plot <- ggplot(BDIxPROMIS, aes(x = `BDI - PROMIS Skala`, y = `PROMIS`)) + 
+  geom_point(aes(size = groupsize.y)) +
+  geom_smooth(method = "lm", color = "red", fill = "#69b3a2", se = TRUE) +
+  xlim(40, 90) +
+  ylim(40, 90) +
+  labs(size = "Gruppengröße") +  # Hier wird der Name der Punktgröße geändert
+  theme_ipsum()
+
+#ggsave("BDIxPROMIS_plot.png", plot = BDIxPROMIS_plot, device = "png", width = 6, height = 4, units = "in")
+
+
+
+#CESDxHADS
+
+CESDxHADS$groupsize.y <- as.numeric(as.character(CESDxHADS$groupsize.y))  
+
+CESDxHADS_plot <- ggplot(CESDxHADS, aes(x = `CESD - PROMIS Skala`, y = `HADS - PROMIS Skala`)) + 
+  geom_point(aes(size = groupsize.y)) +
+  geom_smooth(method = "lm", color = "red", fill = "#69b3a2", se = TRUE) +
+  xlim(40, 90) +
+  ylim(40, 90) +
+  labs(size = "Gruppengröße") +
+  theme_ipsum()
+
+#ggsave("CESDxHADS_plot.png", plot = CESDxHADS_plot, device = "png", width = 6, height = 4, units = "in")
+
+
+
+
+CESDxPHQ$groupsize.y <- as.numeric(as.character(CESDxPHQ$groupsize.y))  
+
+CESDxPHQ_plot <- ggplot(CESDxPHQ, aes(x = `CESD - PROMIS Skala`, y = `PHQ - PROMIS Skala`)) + 
+  geom_point(aes(size = groupsize.y)) +
+  geom_smooth(method = "lm", color = "red", fill = "#69b3a2", se = TRUE) +
+  xlim(40, 90) +
+  ylim(40, 90) +
+  labs(size = "Gruppengröße") +
+  scale_size_continuous(
+    breaks = seq(20, 500, by = 50),  # Set breaks from 20 to 500 in increments of 50
+    labels = seq(20, 500, by = 50)   # Set labels accordingly
+  ) +
+  theme_ipsum()
+
+#ggsave("CESDxPHQ_plot.png", plot = CESDxPHQ_plot, device = "png", width = 6, height = 4, units = "in")
+
+
+PHQxPROMIS$groupsize.y <- as.numeric(as.character(PHQxPROMIS$groupsize.y))  
+
+PHQxPROMIS_plot <- ggplot(PHQxPROMIS, aes(x = `PHQ - PROMIS Skala`, y = `PROMIS`)) + 
+  geom_point(aes(size = groupsize.y)) +
+  geom_smooth(method = "lm", color = "red", fill = "#69b3a2", se = TRUE) +
+  xlim(40, 90) +
+  ylim(40, 90) +
+  labs(size = "Gruppengröße") +
+  theme_ipsum()
+
+#ggsave("PHQxPROMIS_plot.png", plot = PHQxPROMIS_plot, device = "png", width = 6, height = 4, units = "in")
+
+
+# HADSxPROMIS, BDIxPROMIS, CESDxPROMIS zu klein
+
+## Gruppengröße einheitlich plotten und dann übersichtsplot
+
+HADSxPHQ$groupsize.y <- as.numeric(as.character(HADSxPHQ$groupsize.y))  
+
+HADSxPHQ_plot <- ggplot(HADSxPHQ, aes(x = `HADS - PROMIS Skala`, y = `PHQ - PROMIS Skala`)) + 
+  geom_point(aes(size = groupsize.y)) +
+  geom_smooth(method = "lm", color = "red", fill = "#69b3a2", se = TRUE) +
+  xlim(40, 90) +
+  ylim(40, 90) +
+  labs(size = "Gruppengröße") +
+  theme_ipsum()
+
+
+#ggsave("HADSxPHQ_plot.png", plot = HADSxPHQ_plot, device = "png", width = 6, height = 4, units = "in")
+
+  
+  
+  
+
+```
+
+
+
+# Blant Altman Plot einzeln 
+
+
+```{r }
+
+if (!require(blandr)) {
+  install.packages("blandr")
+  library(blandr)
+}
+
+
+BDIxCESD_BA_plot <- blandr.draw(BDIxCESD$'BDI - PROMIS Skala', BDIxCESD$'CESD - PROMIS Skala')
+BDIxCESD_BA_plot <- BDIxCESD_BA_plot +
+  geom_point(size = 1) +  # Adjust the size parameter to make points smaller +
+  theme(text = element_text(size = 6)) +
+  labs(title = "BDIxCESD") +
+  xlim(40, 80) +
+  ylim(-15, 25)
+
+
+
+# BDIxHADS
+
+BDIxHADS_BA_plot <- blandr.draw(BDIxHADS$'BDI - PROMIS Skala', BDIxHADS$'HADS - PROMIS Skala')
+BDIxHADS_BA_plot <- BDIxHADS_BA_plot +
+  theme(text = element_text(size = 6)) +
+  labs(title = "BDIxHADS") +
+  xlim(40, 80) +
+  ylim(-15, 25)
+
+
+
+# BDIxPHQ
+
+BDIxPHQ_BA_plot <- blandr.draw(BDIxPHQ$'BDI - PROMIS Skala', BDIxPHQ$'PHQ - PROMIS Skala') +
+  theme(text = element_text(size = 6)) +
+  labs(title = "BDIxPHQ") +
+  xlim(40, 80) +
+  ylim(-15, 25)
+
+
+
+# BDIxPROMIS
+
+BDIxPROMIS_BA_plot <- blandr.draw(BDIxPROMIS$'BDI - PROMIS Skala', BDIxPROMIS$'PROMIS') +
+  theme(text = element_text(size = 6)) +
+  labs(title = "BDIxPROMIS") +
+  xlim(40, 80) +
+  ylim(-15, 25)
+
+
+
+
+
+# CESDxHADS
+
+CESDxHADS_BA_plot <- blandr.draw(CESDxHADS$'CESD - PROMIS Skala', CESDxHADS$'HADS - PROMIS Skala') +
+  theme(text = element_text(size = 6)) +
+  labs(title = "CESDxHADS") +
+  xlim(40, 80) +
+  ylim(-15, 25)
+
+
+
+
+# CESDxPHQ
+
+CESDxPHQ_BA_plot <- blandr.draw(CESDxPHQ$'CESD - PROMIS Skala', CESDxPHQ$'PHQ - PROMIS Skala') +
+  theme(text = element_text(size = 6)) +
+  labs(title = "CESDxPHQ") +
+  xlim(40, 80) +
+  ylim(-15, 25)
+
+
+
+
+# CESDxPROMIS
+
+CESDxPROMIS_BA_plot <- blandr.draw(
+  CESDxPROMIS$'CESD - PROMIS Skala', 
+  CESDxPROMIS$'PROMIS'
+) +
+  theme(text = element_text(size = 6)) +
+  labs(title = "CESDxPROMIS") +
+  xlim(40, 80) +
+  ylim(-15, 25)
+
+
+
+# HADSxPHQ  
+
+HADSxPHQ_BA_plot <- blandr.draw(
+  HADSxPHQ$'HADS - PROMIS Skala', 
+  HADSxPHQ$'PHQ - PROMIS Skala'
+) +
+  theme(text = element_text(size = 6)) +
+  labs(title = "HADSxPHQ") +
+  xlim(40, 80) +
+  ylim(-15, 25)
+
+
+
+# PHQxPROMIS
+
+PHQxPROMIS_BA_plot <- blandr.draw(
+  PHQxPROMIS$'PHQ - PROMIS Skala',
+  PHQxPROMIS$'PROMIS'
+) +
+  theme(text = element_text(size = 6)) +
+  labs(title = "PHQxPROMIS") +
+  xlim(40, 80) +
+  ylim(-15, 25)
+
+
+
+
+# HADSxPROMIS, BDIxPROMIS, CESDxPROMIS zu klein
+
+
+
+```
+
+
+
+# einen faceted Plot plotten 
+
+```{r }
+
+# dafür hab ich händisch eine Tabelle erstellt
+
+dat_short <- read_excel("dat_short.xlsx", 
+    skip = 1)
+
+
+p<- ggplot (data=dat_short, aes_string(x='Wert_2', y= 'Wert_1')) + geom_point(aes(size = Groupsize))
+p+facet_wrap(~Fragebogenkombination)
+
+
+# design
+
+
+
+
+library(ggplot2)
+
+
+p <- ggplot(data = dat_short, aes(x = Wert_2, y = Wert_1)) +
+  geom_point(aes(size = Groupsize, color = ifelse(is.na(Groupsize), "blue", "black"))) +
+  geom_smooth(method = "lm", color = "red", size = 0.5, fill = "#69b3a2", se = TRUE) +
+  labs(size = "Gruppengröße") +
+  scale_size_continuous(range = c(0, 5), breaks = seq(10, 3700, by = 1000)) +
+  scale_color_identity()
+
+# Print the plot
+print(p)
+
+
+
+Scatterplots <- p+facet_wrap(~Fragebogenkombination)
+
+# Save the plot as a PNG file
+ggsave("Scatterplots.png", Scatterplots, width = 10, height = 6, units = "in")
+
+
+
+```
+
+
+
+# Blant Altman Plot alle
+```{r }
+library(gridExtra)
+
+Blant_plot<- suppressWarnings({
+  BDIxCESD_BA_plot <- blandr.draw(BDIxCESD$'BDI - PROMIS Skala', BDIxCESD$'CESD - PROMIS Skala')
+  BDIxCESD_BA_plot <- BDIxCESD_BA_plot +
+    geom_point(size = 0.1) +
+    scale_size(range = c(0.1, 1.0)) +  # Adjust the range to control the size scaling factor
+    theme(text = element_text(size = 6)) +
+    
+    labs(title = "BDIxCESD") +
+    xlim(40, 80) +
+    ylim(-15, 25)
+
+  BDIxHADS_BA_plot <- # Create BDIxHADS_BA_plot similarly with appropriate data and adjustments
+  BDIxPHQ_BA_plot <- # Create BDIxPHQ_BA_plot similarly with appropriate data and adjustments
+  CESDxHADS_BA_plot <- # Create CESDxHADS_BA_plot similarly with appropriate data and adjustments
+  CESDxPHQ_BA_plot <- # Create CESDxPHQ_BA_plot similarly with appropriate data and adjustments
+  PHQxPROMIS_BA_plot <- # Create PHQxPROMIS_BA_plot similarly with appropriate data and adjustments
+  HADSxPHQ_BA_plot <- # Create HADSxPHQ_BA_plot similarly with appropriate data and adjustments
+
+  grid.arrange(BDIxCESD_BA_plot, BDIxHADS_BA_plot, BDIxPHQ_BA_plot, CESDxHADS_BA_plot, CESDxPHQ_BA_plot, PHQxPROMIS_BA_plot,HADSxPHQ_BA_plot, nrow = 2)
+})
+
+ggsave("Blant_plot.png", Blant_plot, width = 10, height = 6, units = "in")
+
+
+```

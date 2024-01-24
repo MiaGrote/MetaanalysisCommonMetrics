@@ -1,0 +1,41 @@
+---
+title: "02_Fig1_Flowchart"
+output: html_document
+date: "2024-01-11"
+---
+
+```{r }
+# ggplot bauen aus eigenem Datensatz 
+# datensatz mit pfeilen 
+#größe rausfinden
+# oder kein prisma sondern nur flowchart 
+
+
+
+#install.packages("PRISMAstatement")
+library(PRISMAstatement)
+
+prisma(2626, 0, 2626, 1911, 1827, 84, 3, 81, 81)
+
+#prisma_graph(2626, 0, 2626, 1911, 1827, 84, 3, 81, 81)
+
+
+#HADS_PROMIS n= 21, screen 21, incl 0
+#BDI_HADS n= 841, screen 288, incl 10
+#HADS_PHQ n=381, screen 381, incl 19
+#PHQ_PROMIS n= 72, screen 72, incl 6
+#BDI_PROMIS n= 26, screen 26, incl 0
+#CESD_PROMIS n= 33, screen 33, incl 0
+#CESD_PHQ n= 188, screen 188, incl 9
+#CESD_HADS n=317, screen 317, incl 11
+#BDI_PHQ n=392, screen 230, incl 19
+#BDI_CESD n=355, screen 355, incl 7
+
+#2626 gesamt
+#1911 gescreened 
+# 3 exkludiert noch zB BDI und PROMIS weil nur eine Studie da 
+#incl gesamt 81
+
+
+
+```
