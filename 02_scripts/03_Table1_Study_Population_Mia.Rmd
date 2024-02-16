@@ -180,11 +180,6 @@ for (sheet in sheets) {
 }
 
 
-
-
-
-
-
 # Funktion zum Überprüfen und Anpassen der Datentypen der "Value"-Spalte
 check_and_convert_value_column <- function(df) {
   if ("Value" %in% colnames(df)) {
@@ -200,11 +195,13 @@ result_list <- lapply(result_list, check_and_convert_value_column)
 result_df_country <- dplyr::bind_rows(result_list)
 
 
-
-
 # Die ganze Liste in einen Datenframe umwandeln
 result_df_country <- dplyr::bind_rows(result_list)
 
+# Ich habe nochmal nachgelesen und Studie von Haussmann ist in Deutschland 
+result_df_country$Value[86] <- paste("Germany")
+
+  
 ```
 
 
@@ -480,6 +477,7 @@ result_df_mean <- result_df_mean %>%
 
 
 
+
 # Table 1 erstellen aus den oben gesammelten Informationen
 
 Alternativ: mit Tabelle Datenextraktion - komplett_Mia2 rechnen
@@ -505,17 +503,17 @@ table1 <- data.frame(
 
 table1 <- rbind(data.frame(Variable = "Age, years (mean±SD)", category = "", amount = NA),
                 data.frame(Variable = "Gender (% female)", category = "", amount = NA),
-                data.frame(Variable = "Country, n (%)", category = c("US", "UK", "Other European countries", "Australia", "Canada", "East Asia", "Other"), amount = NA),
-                data.frame(Variable = "Format, n (%)", category = c("Interventional or Clinical: Randomized Trial", "Observational: cohort", "Other"), amount = NA),
-                data.frame(Variable = "Number of sessions, n (%)", category = c("1", "2-3", ">3"), amount = NA),
+                data.frame(Variable = "Country, n (%)", category = c("US", "UK", "Other European countries", "Australia", "Canada", "East Asia", "Multinational"), amount = NA),
+                data.frame(Variable = "Format, n (%)", category = c("interventional: clinical/randomized trial", "Observational", "Other"), amount = NA),
+                data.frame(Variable = "Measurement time points in study, n (%)", category = c("1", "2-3", ">3"), amount = NA),
                 data.frame(Variable = "groups within study, n (%)", category = c("1", "2-3", ">3"), amount = NA),
-                data.frame(Variable = "mean", category = c("PROMIS > 60", "around", "40-60"), amount = NA),
+                data.frame(Variable = "Mean score on PROMIS scale", category = c("PROMIS > 60", "=<50"), amount = NA),
                 data.frame(Variable = "Number of times a questionnaire was used in the studies", category = c("BDI II", "CESD", "HADS", "PHQ", "PROMIS"), amount = NA),                
 
                 table1)
 
 
-table1$Variable[c(4:9, 11:12, 14:15, 17:18, 20, 21, 23:26)] <- NA
+table1$Variable[c(4:9, 11:12, 14:15, 17:18, 20, 22, 23:25)] <- NA
 ```
 
 
@@ -545,8 +543,6 @@ rounded_sd <- round(sd_value_age, 1)
 table1$amount[1] <- paste(rounded_mean, " (±", rounded_sd, ")", sep = "")
 
 
-# Print the table1 data frame
-print(table1)
 
 
 
@@ -578,60 +574,53 @@ sd_value_gender <- sd(result_df_gender$Value, na.rm = TRUE)
 rounded_sd <- round(sd_value_gender, 1)
 
 # Extrahiere den gerundeten Mittelwert und Standardfehler und füge sie in die erste Zeile von amount in table1 ein
-table1$amount[2] <- paste(rounded_mean)
+table1$amount[2] <- paste0(rounded_mean, "%")
 
 
-# Print the table1 data frame
-print(table1)
+
 
 ```
 
 # Tabelle befüllen: country -> FRAGE: manche Studien haben in mehren Ländern stattgefunden. Zählt jedes Land einzeln
 ```{r }
-result_df_country <- result_df_country %>%
-  group_by(Study) %>%
-  summarize(across(everything(), ~ first(.[!is.na(.)]), .names = "{col}"))
-
-
-result_df_country <- result_df_country %>%
-  mutate(Value = strsplit(as.character(Value), ", ")) %>%
-  unnest(cols = Value)
 
 amount_usa <- sum(result_df_country$Value == "USA")
-percent_usa <- (amount_usa / 83) * 100
+percent_usa <- (amount_usa / 87) * 100
 percent_usa <- round(percent_usa, 1)
 
 amount_uk <- sum(result_df_country$Value %in% c("United Kingdom", "UK", "U.K."))
-percent_uk <- (amount_usa / 83) * 100
+percent_uk <- (amount_uk / 87) * 100
 percent_uk <- round(percent_uk, 1)
 
-amount_europ <- sum(result_df_country$Value %in% c("Switzerland","Belgium", "Germany", "Greece", "Netherlands", "Croatia", "Sweden", "Italy", "Schweden"))
-percent_europ <- (amount_europ / 83) * 100
-percent_europ <- round(amount_europ, 1)
+amount_europ <- 10
+percent_europ <- (amount_europ / 87) * 100
+percent_europ <- round(percent_europ, 1)
 
 amount_australia <- sum(result_df_country$Value == "Australia")
-percent_australia <- (amount_australia / 83) * 100
+percent_australia <- (amount_australia / 87) * 100
 percent_australia <- round(percent_australia, 1)
 
 amount_canada <- sum(result_df_country$Value == "Canada")
-percent_canada <- (amount_canada / 83) * 100
+percent_canada <- (amount_canada / 87) * 100
 percent_canada <- round(percent_canada, 1)
 
 
-amount_EastAsia <- sum(result_df_country$Value %in% c("China", "Korea", "Taiwan", "India", "Iran", "Japan", "Republic of Korea", "Republic of Korea,"))
-percent_EastAsia <- (amount_EastAsia / 83) * 100
+amount_EastAsia <- 11
+percent_EastAsia <- (amount_EastAsia / 87) * 100
 percent_EastAsia <- round(percent_EastAsia, 1)
 
 
 
-countries_excluded <- c("USA", "United Kingdom", "UK", "U.K.", "Switzerland", "Belgium", "Germany", "Greece", "Netherlands", "Croatia", "Sweden", "Italy", "Schweden", "Canada", "China", "Korea", "Taiwan", "India", "Iran", "Japan", "Republic of Korea", "Republic of Korea,")
+amount_multi <- sum(str_detect(result_df_country$Value, ","))
 
-amount_other <- sum(!result_df_country$Value %in% countries_excluded)
-percent_other <- (amount_other / 83) * 100
-percent_other <- round(percent_other, 1)
+# Calculate the percentage
+percent_multi <- (amount_multi / 87) * 100
+percent_multi <- round(percent_multi, 1)
 
 
-# pleace in table
+
+
+# place in table
 
 table1$amount[3] <- paste(amount_usa, " (", percent_usa, ")", sep = "")
 table1$amount[4] <- paste(amount_uk, " (", percent_uk, ")", sep = "")
@@ -639,7 +628,7 @@ table1$amount[5] <- paste(amount_europ, " (", percent_europ, ")", sep = "")
 table1$amount[6] <- paste(amount_australia, " (", percent_australia, ")", sep = "")
 table1$amount[7] <- paste(amount_canada, " (", percent_canada, ")", sep = "")
 table1$amount[8] <- paste(amount_EastAsia, " (", percent_EastAsia, ")", sep = "")
-table1$amount[9] <- paste(amount_other, " (", percent_other, ")", sep = "")
+table1$amount[9] <- paste(amount_multi, " (", percent_multi, ")", sep = "")
 
 
 
@@ -663,16 +652,16 @@ result_df_studytype <- result_df_studytype %>%
 
 
 amount_rct <- sum(result_df_studytype$Value %in% c("interventional: randomized trial", "interventional: clinical trial"))
-percent_rct <- (amount_rct / 83) * 100
+percent_rct <- (amount_rct / 87) * 100
 percent_rct <- round(percent_rct, 1)
 
-amount_observational <- sum(result_df_studytype$Value == "observational: cohort")
-percent_observational <- (amount_observational / 83) * 100
+amount_observational <- 25
+percent_observational <- (amount_observational / 87) * 100
 percent_observational <- round(percent_observational, 1)
 
 
-amount_other <- 83 - (amount_rct+amount_observational)
-percent_other <- (amount_other / 83) * 100
+amount_other <- 87 - (amount_rct+amount_observational)
+percent_other <- (amount_other / 87) * 100
 percent_other <- round(percent_other, 1)
 
 
@@ -682,9 +671,6 @@ table1$amount[10] <- paste(amount_rct, " (", percent_rct, ")", sep = "")
 table1$amount[11] <- paste(amount_observational, " (", percent_observational, ")", sep = "")
 table1$amount[12] <- paste(amount_other, " (", percent_other, ")", sep = "")
 
-
-
-print(table1)
 
 ```
 
@@ -701,17 +687,17 @@ result_df_measurementTimePoints <- result_df_measurementTimePoints %>%
 
 amount_Eins <- sum(result_df_measurementTimePoints$Value %in% "1")
 
-percent_Eins <- (amount_Eins / 83) * 100
+percent_Eins <- (amount_Eins / 87) * 100
 percent_Eins <- round(percent_Eins, 1)
 
 
 amount_zweiBisdrei <- sum(result_df_measurementTimePoints$Value %in% c("2", "3"))
-percent_zweiBisdrei <- (amount_zweiBisdrei / 83) * 100
+percent_zweiBisdrei <- (amount_zweiBisdrei / 87) * 100
 percent_zweiBisdrei <- round(percent_zweiBisdrei, 1)
 
 
 amount_größerDrei <- sum(result_df_measurementTimePoints$Value %in% c("4", "5"))
-percent_größerDrei <- (amount_größerDrei / 83) * 100
+percent_größerDrei <- (amount_größerDrei / 87) * 100
 percent_größerDrei <- round(percent_größerDrei, 1)
 
 
@@ -736,17 +722,17 @@ result_df_groupsWithinStudy <- result_df_groupsWithinStudy %>%
 # Umgang mit NAs in Prozentzahlen??
 
 amount_Eins <- sum(result_df_groupsWithinStudy$Value %in% "1")
-percent_Eins <- (amount_Eins / 83) * 100
+percent_Eins <- (amount_Eins / 87) * 100
 percent_Eins <- round(percent_Eins, 1)
 
 
 amount_zweiBisdrei <- sum(result_df_groupsWithinStudy$Value %in% c("2", "3"))
-percent_zweiBisdrei <- (amount_zweiBisdrei / 83) * 100
+percent_zweiBisdrei <- (amount_zweiBisdrei / 87) * 100
 percent_zweiBisdrei <- round(percent_zweiBisdrei, 1)
 
 
 amount_größerDrei <- sum(result_df_groupsWithinStudy$Value %in% c("4", "5"))
-percent_größerDrei <- (amount_größerDrei / 83) * 100
+percent_größerDrei <- (amount_größerDrei / 87) * 100
 percent_größerDrei <- round(percent_größerDrei, 1)
 
 
@@ -764,25 +750,30 @@ table1$amount[18] <- paste(amount_größerDrei, " (", percent_größerDrei, ")",
 # Tabelle befüllen: mean -> Diagnose haben oder nicht ab PROMIS 60
 ## das hier ist noch nicht auf studylevel
 
+bdi cutoff:
+The cutoffs used are 0 to 13 for minimal depression, 14 to 19 for mild depression, 20 to 28 for moderate depression, and 29 to 63 for severe depression
+
+
+
 ```{r }
+
 
 result_df_mean <- result_df_mean %>%
   mutate(Depression_Status = strsplit(as.character(Depression_Status), ", ")) %>%
   unnest(cols = Depression_Status)
 
 amount_notDepressed <- sum(result_df_mean$Depression_Status == "not depressed")
-percent_notDepressed <- (amount_notDepressed / 420) * 100
+percent_notDepressed <- (amount_notDepressed / 87) * 100
 percent_notDepressed <- round(percent_notDepressed, 1)
 
 amount_Depressed <- sum(result_df_mean$Depression_Status == "depressed")
-percent_Depressed <- (amount_Depressed / 420) * 100
+percent_Depressed <- (amount_Depressed / 87) * 100
 percent_Depressed <- round(percent_Depressed, 1)
 
 
 table1$amount[19] <- paste(amount_notDepressed, " (", percent_notDepressed, ")", sep = "")
 table1$amount[20] <- paste(amount_Depressed, " (", percent_Depressed, ")", sep = "")
 
-print(table1)
 
 ```
 
@@ -803,40 +794,40 @@ result_df_mean <- result_df_mean %>%
 
 
 
+# händisch
 
-
-count_bdi <- sum(grepl("BDI", result_df_mean$Fragebogenkombination, fixed = TRUE))
-percent_bdi <- (count_bdi / 83) * 100
+count_bdi <- 36
+percent_bdi <- (count_bdi / 87) * 100
 percent_bdi <- round(percent_bdi, 1)
 
-count_cesd <- sum(grepl("CESD", result_df_mean$Fragebogenkombination, fixed = TRUE))
-percent_cesd <- (count_cesd / 83) * 100
+count_cesd <- 30
+percent_cesd <- (count_cesd / 87) * 100
 percent_cesd <- round(percent_cesd, 1)
 
-count_phq <- sum(grepl("PHQ", result_df_mean$Fragebogenkombination, fixed = TRUE))
-percent_phq <- (count_phq / 83) * 100
+count_phq <- 54
+percent_phq <- (count_phq / 87) * 100
 percent_phq <- round(percent_phq, 1)
 
-count_hads <- sum(grepl("HADS", result_df_mean$Fragebogenkombination, fixed = TRUE))
-percent_hads <- (count_hads / 83) * 100
+count_hads <- 42
+percent_hads <- (count_hads / 87) * 100
 percent_hads <- round(percent_hads, 1)
 
-count_promis <- sum(grepl("PROMIS", result_df_mean$Fragebogenkombination, fixed = TRUE))
-percent_promis <- (count_promis / 83) * 100
+count_promis <- 6
+percent_promis <- (count_promis / 87) * 100
 percent_promis <- round(percent_promis, 1)
 
 
-table1$amount[22] <- paste(count_bdi, " (", percent_bdi, ")", sep = "")
-table1$amount[23] <- paste(count_cesd, " (", percent_cesd, ")", sep = "")
-table1$amount[24] <- paste(count_phq, " (", percent_phq, ")", sep = "")
-table1$amount[25] <- paste(count_hads, " (", percent_hads, ")", sep = "")
-table1$amount[26] <- paste(count_promis, " (", percent_promis, ")", sep = "")
+table1$amount[21] <- paste(count_bdi, " (", percent_bdi, ")", sep = "")
+table1$amount[22] <- paste(count_cesd, " (", percent_cesd, ")", sep = "")
+table1$amount[23] <- paste(count_phq, " (", percent_phq, ")", sep = "")
+table1$amount[24] <- paste(count_hads, " (", percent_hads, ")", sep = "")
+table1$amount[25] <- paste(count_promis, " (", percent_promis, ")", sep = "")
+
+write.csv(table1, "/Users/miagrote/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Git/MetaanalysisCommonMetrics/04_results/table1.csv", row.names=FALSE)
 
 
 
-
-
-print(table1)
+#write.png(table1, "/Users/miagrote/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Git/MetaanalysisCommonMetrics/04_results/table1.csv", row.names=FALSE)
 
 ```
 
@@ -846,7 +837,7 @@ print(table1)
 
 # export table1
 ```{r }
-write.csv(table1, "table1.csv", row.names = FALSE)
+#write.csv(table1, "table1.csv", row.names = FALSE)
 
 ```
 
@@ -867,14 +858,9 @@ result_df_age %>%
   
   result_list[[6]]
   
-install.packages("janitor")
+#install.packages("janitor")
 library(janitor)
 ```
-
-
-
-
-
 
 
 
@@ -888,7 +874,7 @@ variables of interest:
 -study_type_cross_sectional_observational_cohort_case_control_interventional_clinical_trial_randomized_trial_method_study -> study_type, study_country_ies
 
 ```{r}
-#read_excel(file_path, sheet = 6) %>% clean_names()
+##read_excel(file_path, sheet = 6) %>% clean_names()
 
 ```
 
