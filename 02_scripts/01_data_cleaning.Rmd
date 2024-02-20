@@ -3,7 +3,7 @@ title: "01_data_cleaning"
 output: html_document
 date: "2024-01-10"
 ---
-
+# Vorbereitung
 ```{r setup, include=FALSE}
 
 #install.packages("tidyr")
@@ -64,20 +64,17 @@ for (sheet in sheets) {
   result_list[[sheet]] <- clean_and_transform_data(sheet)
 }
 
-# Ergebnisse anzeigen (optional)
-lapply(result_list, View)
-
-
 
 # Die ganze Liste in einen Datenframe umwandeln
 result_df <- dplyr::bind_rows(result_list)
+
 # Umwandlung der Spalte "Value" in beiden Datensätzen in numerischen Typ
 result_df$Value <- as.numeric(result_df$Value)
 
-file_path <- "~/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/result_data.csv"
+#file_path <- "~/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/result_data.csv"
 
 # Save the data frame to a CSV file at the specified location
-write.csv(result_df, file_path, row.names = FALSE)
+#write.csv(result_df, file_path, row.names = FALSE)
 
 ```
 
@@ -133,14 +130,10 @@ result_df_group <- dplyr::bind_rows(result_list)
 result_df_group <- result_df_group %>%
   rename(groupsize = Value)
 
-# Umwandlung der Spalte "Value" in beiden Datensätzen in numerischen Typ
-#result_df_group$Value <- as.numeric(result_df$Value)
-
-
-file_path <- "~/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/result_data_group.csv"
+#file_path <- "~/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/result_data_group.csv"
 
 # Save the data frame to a CSV file at the specified location
-write.csv(result_df_group, file_path, row.names = FALSE)
+#write.csv(result_df_group, file_path, row.names = FALSE)
 
 ```
 
@@ -163,8 +156,8 @@ LookUp_CESD <- LookUp_CESD %>% rename(Value = `CESD Raw Score`)
 ```
 
 
-
-# Für BDI
+# Werte auf PROMIS Skala übertragen, Gruppenbeschreibung trennen und in neue Datensätze speichern z.B. "SUBSET_BDI" etc.
+## Für BDI
 
 ```{r}
 
@@ -240,17 +233,14 @@ subset_BDI_group <- subset_BDI_group %>%
 subset_BDI_group$Variable <- gsub("^\\s*([0-9]+)\\s*", "\\1", subset_BDI_group$Variable)
 
 
-
 # LEFT join um Gruppengröße mit dabei zu haben
-
 SUBSET_BDI <- left_join(subset_BDI, subset_BDI_group, by = c("Study", "Variable"))
 
 
 ```
 
-# Für PHQ
+## Für PHQ
 ```{r}
-
 
 # Datensatz und LookUp Tabelle joinen
 subset_PHQ <- result_df[grepl("PHQ", result_df$Variable), ]
@@ -289,7 +279,6 @@ subset_PHQ <- subset_PHQ %>%
   )
 
 
-
 # GROUP SIZE dazu bekommen 
 library(stringr)
 
@@ -320,7 +309,6 @@ subset_PHQ_group <- subset_PHQ_group %>%
   rename(Variable = After_Group)
 
 # Annahme: subset_PHQ_group ist dein Datensatz
-
 subset_PHQ_group$Variable <- gsub("^\\s*([0-9]+)\\s*", "\\1", subset_PHQ_group$Variable)
 
 
@@ -334,7 +322,7 @@ SUBSET_PHQ <- left_join(subset_PHQ, subset_PHQ_group, by = c("Study", "Variable"
 
 ```
 
-# Für HADS
+## Für HADS
 
 ```{r}
 
@@ -419,7 +407,7 @@ SUBSET_HADS <- left_join(subset_HADS, subset_HADS_group, by = c("Study", "Variab
 ```
 
 
-# Für CESD
+## Für CESD
 
 ```{r}
 
@@ -503,7 +491,7 @@ SUBSET_CESD <- left_join(subset_CESD, subset_CESD_group, by = c("Study", "Variab
 
 ```
 
-# Für PROMIS
+## Für PROMIS
 
 ```{r}
 
@@ -571,13 +559,10 @@ subset_PROMIS_group <- subset_PROMIS_group %>%
   rename(Variable = After_Group)
 
 # Annahme: subset_PROMIS_group ist dein Datensatz
-
 subset_PROMIS_group$Variable <- gsub("^\\s*([0-9]+)\\s*", "\\1", subset_PROMIS_group$Variable)
 
 
-
 # LEFT join um Gruppengröße mit dabei zu haben
-
 SUBSET_PROMIS <- left_join(subset_PROMIS, subset_PROMIS_group, by = c("Study", "Variable"))
 SUBSET_PROMIS <- SUBSET_PROMIS %>%
   select(-`PROMIS Score`, -Value)

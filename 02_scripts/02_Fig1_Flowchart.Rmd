@@ -77,12 +77,12 @@ grp_b <- boxGrob(glue("Excluded",
                       .sep = "\n"))
 # not employed as self-reports, publication not in English/German).
 excluded <- boxGrob(glue("Excluded (n = {tot}):",
-                         " - not two depression measures included: {nottwo}",
-                         " - not assessed at the same time: {time}",
-                         " - not assessed in the same sample: {sample}",
-                         " - not referring to current depression severity: {severity}",
-                         " - not employed as self-reports: {notselfreports}",
-                         " - publication not in English/German: {language}",
+                       #  " - not two depression measures included: {nottwo}",
+                       #  " - not assessed at the same time: {time}",
+                       #  " - not assessed in the same sample: {sample}",
+                       #  " - not referring to current depression severity: {severity}",
+                       #  " - not employed as self-reports: {notselfreports}",
+                       #  " - publication not in English/German: {language}",
                          tot = 1827,
                          nottwo = 99,
                          time = 99,
@@ -123,11 +123,6 @@ grps
 excluded
 
 
-# ... (previous code remains the same)
-
-# Load the gridExtra package
-library(gridExtra)
-library(ggplot2)
 
 ```
 
