@@ -90,7 +90,6 @@ excluded <- boxGrob(glue("Excluded (n = {tot}):",
                          severity = 99,
                          notselfreports = 99,
                          language = 99,
-
                          .sep = "\n"),
                     just = "left")
 
