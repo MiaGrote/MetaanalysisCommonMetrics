@@ -126,8 +126,6 @@ excluded
 ```
 
 ```{r}
-
-
 library(Gmisc, quietly = TRUE)
 library(glue)
 library(htmlTable)

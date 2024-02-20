@@ -199,7 +199,6 @@ subset_BDI <- subset_BDI %>%
   )
 
 
-
 # GROUP SIZE dazu bekommen 
 library(stringr)
 
