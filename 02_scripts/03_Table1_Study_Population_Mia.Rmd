@@ -15,7 +15,6 @@ setwd(here())
 
 file_path <- here("01_data", "Datenextraktion - komplett.xlsx")
 
-
 clean_and_transform_data <- function(sheet_name) {
   Datenextraktion_komplett <- read_excel(file_path, sheet = sheet_name)
   columns_to_select <- grep("Mean age - gesamt - #", names(Datenextraktion_komplett), value = TRUE)
@@ -696,6 +695,6 @@ table1$amount[23] <- paste(count_phq, " (", percent_phq, ")", sep = "")
 table1$amount[24] <- paste(count_hads, " (", percent_hads, ")", sep = "")
 table1$amount[25] <- paste(count_promis, " (", percent_promis, ")", sep = "")
 
-write.csv(table1, "/Users/miagrote/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Git/MetaanalysisCommonMetrics/04_results/table1.csv", row.names=FALSE)
+#write.csv(table1, "/Users/miagrote/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Git/MetaanalysisCommonMetrics/04_results/table1.csv", row.names=FALSE)
 
 ```

@@ -77,9 +77,9 @@ clean_and_transform_data <- function(sheet_name) {
   columns_to_select <- grep("Group size", names(Datenextraktion_komplett), value = TRUE)
   subset_dat <- Datenextraktion_komplett[, c("Study", columns_to_select)]
   subset_dat_long <- subset_dat %>%
-    gather(key = "Variable", value = "Value", -Study)
+  gather(key = "Variable", value = "Value", -Study)
   cleaned_subset_dat_long <- subset_dat_long %>%
-    filter(Value != "nicht zutreffend")
+  filter(Value != "nicht zutreffend")
   return(cleaned_subset_dat_long)
 }
 
