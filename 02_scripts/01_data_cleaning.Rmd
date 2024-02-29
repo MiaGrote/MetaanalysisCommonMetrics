@@ -29,7 +29,7 @@ library(janitor)
 library(here)
 setwd(here())
 
-file_path <- "01_data/Datenextraktion - komplett.xlsx"
+file_path <- here("01_data", "Datenextraktion - komplett.xlsx")
 
 # Funktion zur Bereinigung und Umwandlung der Daten
 clean_and_transform_data <- function(sheet_name) {
@@ -66,8 +66,10 @@ result_df$Value <- as.numeric(result_df$Value)
 ## Eine Tabelle im long Format erstellen, die alle Kombinationen an Fragebögen mit deren ID und Werten festhält FÜR GROUP size
 
 ```{r }
-#setwd("/Users/miagrote/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Git/MetaanalysisCommonMetrics")
+library(here)
 setwd(here())
+
+file_path <- here("01_data", "Datenextraktion - komplett.xlsx")
 
 # Funktion zur Bereinigung und Umwandlung der Daten
 clean_and_transform_data <- function(sheet_name) {
@@ -104,6 +106,7 @@ result_df_group <- result_df_group %>%
 # LookUp Tabellen hochladen und vorbereiten
 
 ```{r}
+library(here)
 setwd(here())
 
 LookUp_PHQ <- read_excel("01_data/LookUp_PHQ.xlsx")

@@ -10,12 +10,11 @@ date: "2024-01-10"
 ### Age
 ```{r }
 
-setwd("~/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Git/MetaanalysisCommonMetrics/02_scripts")
-
 library(here)
 setwd(here())
 
-file_path <- "01_data/Datenextraktion - komplett.xlsx"
+file_path <- here("01_data", "Datenextraktion - komplett.xlsx")
+
 
 clean_and_transform_data <- function(sheet_name) {
   Datenextraktion_komplett <- read_excel(file_path, sheet = sheet_name)
@@ -63,10 +62,8 @@ result_df_age <- dplyr::bind_rows(result_list)
 
 library(here)
 setwd(here())
+file_path <- here("01_data", "Datenextraktion - komplett.xlsx")
 
-
-# Define the relative file path
-file_path <- "01_data/Datenextraktion - komplett.xlsx"
 
 clean_and_transform_data <- function(sheet_name) {
   Datenextraktion_komplett <- read_excel(file_path, sheet = sheet_name)
@@ -115,8 +112,8 @@ result_df_gender <- dplyr::bind_rows(result_list)
 ```{r }
 library(here)
 setwd(here())
+file_path <- here("01_data", "Datenextraktion - komplett.xlsx")
 
-file_path <- "01_data/Datenextraktion - komplett.xlsx"
 
 clean_and_transform_data <- function(sheet_name) {
   Datenextraktion_komplett <- read_excel(file_path, sheet = sheet_name)
@@ -168,8 +165,8 @@ result_df_country$Value[86] <- paste("Germany")
 ```{r }
 library(here)
 setwd(here())
+file_path <- here("01_data", "Datenextraktion - komplett.xlsx")
 
-file_path <- "01_data/Datenextraktion - komplett.xlsx"
 
 clean_and_transform_data <- function(sheet_name) {
   Datenextraktion_komplett <- read_excel(file_path, sheet = sheet_name)
@@ -213,8 +210,8 @@ result_df_studytype <- dplyr::bind_rows(result_list)
 ```{r }
 library(here)
 setwd(here())
+file_path <- here("01_data", "Datenextraktion - komplett.xlsx")
 
-file_path <- "01_data/Datenextraktion - komplett.xlsx"
 
 clean_and_transform_data <- function(sheet_name) {
   Datenextraktion_komplett <- read_excel(file_path, sheet = sheet_name)
@@ -272,8 +269,8 @@ result_df_measurementTimePoints[28, "Value"] <- 1
 ```{r }
 library(here)
 setwd(here())
+file_path <- here("01_data", "Datenextraktion - komplett.xlsx")
 
-file_path <- "01_data/Datenextraktion - komplett.xlsx"
 clean_and_transform_data <- function(sheet_name) {
   Datenextraktion_komplett <- read_excel(file_path, sheet = sheet_name)
   columns_to_select <- grep("# of groups within study", names(Datenextraktion_komplett), value = TRUE)
@@ -323,8 +320,8 @@ result_df_groupsWithinStudy <- dplyr::bind_rows(result_list)
 ```{r }
 library(here)
 setwd(here())
+file_path <- here("01_data", "Datenextraktion - komplett.xlsx")
 
-file_path <- "01_data/Datenextraktion - komplett.xlsx"
 
 
 # Pfade zusammenfügen
