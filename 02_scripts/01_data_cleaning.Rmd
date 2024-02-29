@@ -25,31 +25,23 @@ library(janitor)
 ## Eine Tabelle im long Format erstellen, die alle Kombinationen an Fragebögen mit deren ID und Werten festhält
 
 ```{r }
+
+library(here)
+setwd(here())
+
+file_path <- "01_data/Datenextraktion - komplett.xlsx"
+
 # Funktion zur Bereinigung und Umwandlung der Daten
 clean_and_transform_data <- function(sheet_name) {
-  # Dateipfad
-  file_path <- "/Users/miagrote/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/Datenextraktion - komplett.xlsx"
-  
-  # Daten einlesen
   Datenextraktion_komplett <- read_excel(file_path, sheet = sheet_name)
-  
-  # Spaltennamen, die "mean sum score" enthalten
   columns_to_select <- grep("mean sum score", names(Datenextraktion_komplett), value = TRUE)
-  
-  # Subset erstellen
   subset_dat <- Datenextraktion_komplett[, c("Study", columns_to_select)]
-  
-  # Daten umstrukturieren
   subset_dat_long <- subset_dat %>%
-    gather(key = "Variable", value = "Value", -Study)
-  
-  # NA's löschen
+  gather(key = "Variable", value = "Value", -Study)
   cleaned_subset_dat_long <- subset_dat_long %>%
-    filter(Value != "nicht zutreffend")
-  
+  filter(Value != "nicht zutreffend")
   return(cleaned_subset_dat_long)
 }
-
 
 # Liste der Blätter
 sheets <- c("BDI_CESD included only", "BDI_HADS included only", "BDI_PHQ included only",
@@ -64,76 +56,47 @@ for (sheet in sheets) {
   result_list[[sheet]] <- clean_and_transform_data(sheet)
 }
 
-
 # Die ganze Liste in einen Datenframe umwandeln
 result_df <- dplyr::bind_rows(result_list)
 
-# Umwandlung der Spalte "Value" in beiden Datensätzen in numerischen Typ
 result_df$Value <- as.numeric(result_df$Value)
-
-#file_path <- "~/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/result_data.csv"
-
-# Save the data frame to a CSV file at the specified location
-#write.csv(result_df, file_path, row.names = FALSE)
 
 ```
 
 ## Eine Tabelle im long Format erstellen, die alle Kombinationen an Fragebögen mit deren ID und Werten festhält FÜR GROUP size
 
 ```{r }
+#setwd("/Users/miagrote/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Git/MetaanalysisCommonMetrics")
+setwd(here())
+
 # Funktion zur Bereinigung und Umwandlung der Daten
 clean_and_transform_data <- function(sheet_name) {
-  # Dateipfad
-  file_path <- "/Users/miagrote/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/Datenextraktion - komplett.xlsx"
-  
-  # Daten einlesen
   Datenextraktion_komplett <- read_excel(file_path, sheet = sheet_name)
-  
-  # Spaltennamen, die "mean sum score" enthalten
   columns_to_select <- grep("Group size", names(Datenextraktion_komplett), value = TRUE)
-  
-  # Subset erstellen
   subset_dat <- Datenextraktion_komplett[, c("Study", columns_to_select)]
-  
-  # Daten umstrukturieren
   subset_dat_long <- subset_dat %>%
     gather(key = "Variable", value = "Value", -Study)
-  
-  # NA's löschen
   cleaned_subset_dat_long <- subset_dat_long %>%
     filter(Value != "nicht zutreffend")
-  
   return(cleaned_subset_dat_long)
 }
-
 
 # Liste der Blätter
 sheets <- c("BDI_CESD included only", "BDI_HADS included only", "BDI_PHQ included only",
             "BDI_PROMIS included only", "CESD_HADS included only", "CESD_PHQ included only",
             "CESD_PROMIS included only", "PHQ_PROMIS included only")
 
-# Leere Liste für die Ergebnisse
 result_list <- list()
 
-# Schleife über alle Blätter
 for (sheet in sheets) {
   result_list[[sheet]] <- clean_and_transform_data(sheet)
 }
 
-# Ergebnisse anzeigen (optional)
-lapply(result_list, View)
-
 # Die ganze Liste in einen Datenframe umwandeln
 result_df_group <- dplyr::bind_rows(result_list)
 
-
 result_df_group <- result_df_group %>%
   rename(groupsize = Value)
-
-#file_path <- "~/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/result_data_group.csv"
-
-# Save the data frame to a CSV file at the specified location
-#write.csv(result_df_group, file_path, row.names = FALSE)
 
 ```
 
@@ -141,10 +104,12 @@ result_df_group <- result_df_group %>%
 # LookUp Tabellen hochladen und vorbereiten
 
 ```{r}
-LookUp_PHQ <- read_excel("~/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/PHQ Raw Score to T-Score Conversion Table.xlsx")
-LookUp_HADS <- read_excel("~/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/LookUp_HADS.xlsx")
-LookUp_CESD <- read_excel("~/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/LookUp_CESD.xlsx")
-LookUp_BDI <- read_excel("~/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/LookUp_BDI.xlsx")
+setwd(here())
+
+LookUp_PHQ <- read_excel("01_data/LookUp_PHQ.xlsx")
+LookUp_HADS <- read_excel("01_data/LookUp_HADS.xlsx")
+LookUp_CESD <- read_excel("01_data/LookUp_CESD.xlsx")
+LookUp_BDI <- read_excel("01_data/LookUp_BDI.xlsx")
 
 ## umbenennen zum Datensätze mergen
 
@@ -212,7 +177,6 @@ subset_BDI_group <- subset_BDI_group %>%
 subset_BDI_group <- subset_BDI_group %>%
   mutate(Variable = str_replace(Variable, "Group size BDI", ""))
 
-
 # Column "Variable" aufteilen nach dem "Group"
 subset_BDI_group <- subset_BDI_group %>%
   separate(Variable, into = c("Before_Group", "After_Group"), sep = "Group", extra = "merge", remove = FALSE)
@@ -228,23 +192,18 @@ subset_BDI_group <- subset_BDI_group %>%
 subset_BDI_group <- subset_BDI_group %>%
   rename(Variable = After_Group)
 
-# Annahme: subset_BDI_group ist dein Datensatz
 subset_BDI_group$Variable <- gsub("^\\s*([0-9]+)\\s*", "\\1", subset_BDI_group$Variable)
-
 
 # LEFT join um Gruppengröße mit dabei zu haben
 SUBSET_BDI <- left_join(subset_BDI, subset_BDI_group, by = c("Study", "Variable"))
-
 
 ```
 
 ## Für PHQ
 ```{r}
-
 # Datensatz und LookUp Tabelle joinen
 subset_PHQ <- result_df[grepl("PHQ", result_df$Variable), ]
 subset_PHQ <- full_join(subset_PHQ, LookUp_PHQ, by = "Value")
-
 
 # Interpolation der Spalte PROMIS 
 subset_PHQ$'PROMIS Score'<- approx(
@@ -307,12 +266,8 @@ subset_PHQ_group <- subset_PHQ_group %>%
 subset_PHQ_group <- subset_PHQ_group %>%
   rename(Variable = After_Group)
 
-# Annahme: subset_PHQ_group ist dein Datensatz
 subset_PHQ_group$Variable <- gsub("^\\s*([0-9]+)\\s*", "\\1", subset_PHQ_group$Variable)
 
-
-
-# LEFT join um Gruppengröße mit dabei zu haben
 subset_PHQ$Variable <- sub("(\\d)\\s", "\\1", subset_PHQ$Variable)
 
 SUBSET_PHQ <- left_join(subset_PHQ, subset_PHQ_group, by = c("Study", "Variable"))
@@ -362,7 +317,6 @@ subset_HADS <- subset_HADS %>%
   )
 
 
-
 # GROUP SIZE dazu bekommen 
 library(stringr)
 
@@ -375,7 +329,6 @@ subset_HADS_group <- subset_HADS_group %>%
 # Muster "Group size HADS" aus der Column "Variable" löschen
 subset_HADS_group <- subset_HADS_group %>%
   mutate(Variable = str_replace(Variable, "Group size HADS", ""))
-
 
 # Column "Variable" aufteilen nach dem "Group"
 subset_HADS_group <- subset_HADS_group %>%
@@ -392,11 +345,7 @@ subset_HADS_group <- subset_HADS_group %>%
 subset_HADS_group <- subset_HADS_group %>%
   rename(Variable = After_Group)
 
-# Annahme: subset_HADS_group ist dein Datensatz
-
 subset_HADS_group$Variable <- gsub("^\\s*([0-9]+)\\s*", "\\1", subset_HADS_group$Variable)
-
-
 
 # LEFT join um Gruppengröße mit dabei zu haben
 subset_HADS$Variable <- sub("(\\d)\\s", "\\1", subset_HADS$Variable)
@@ -447,7 +396,6 @@ subset_CESD <- subset_CESD %>%
   )
 
 
-
 # GROUP SIZE dazu bekommen 
 library(stringr)
 
@@ -460,7 +408,6 @@ subset_CESD_group <- subset_CESD_group %>%
 # Muster "Group size CESD" aus der Column "Variable" löschen
 subset_CESD_group <- subset_CESD_group %>%
   mutate(Variable = str_replace(Variable, "Group size CESD", ""))
-
 
 # Column "Variable" aufteilen nach dem "Group"
 subset_CESD_group <- subset_CESD_group %>%
@@ -477,10 +424,7 @@ subset_CESD_group <- subset_CESD_group %>%
 subset_CESD_group <- subset_CESD_group %>%
   rename(Variable = After_Group)
 
-# Annahme: subset_CESD_group ist dein Datensatz
-
 subset_CESD_group$Variable <- gsub("^\\s*([0-9]+)\\s*", "\\1", subset_CESD_group$Variable)
-
 
 
 # LEFT join um Gruppengröße mit dabei zu haben
@@ -526,7 +470,6 @@ subset_PROMIS <- subset_PROMIS %>%
   )
 
 
-
 # GROUP SIZE dazu bekommen 
 library(stringr)
 
@@ -540,7 +483,6 @@ subset_PROMIS_group <- subset_PROMIS_group %>%
 # Muster "Group size PROMIS" aus der Column "Variable" löschen
 subset_PROMIS_group <- subset_PROMIS_group %>%
   mutate(Variable = str_replace(Variable, "Group size PROMIS", ""))
-
 
 # Column "Variable" aufteilen nach dem "Group"
 subset_PROMIS_group <- subset_PROMIS_group %>%
@@ -557,7 +499,6 @@ subset_PROMIS_group <- subset_PROMIS_group %>%
 subset_PROMIS_group <- subset_PROMIS_group %>%
   rename(Variable = After_Group)
 
-# Annahme: subset_PROMIS_group ist dein Datensatz
 subset_PROMIS_group$Variable <- gsub("^\\s*([0-9]+)\\s*", "\\1", subset_PROMIS_group$Variable)
 
 

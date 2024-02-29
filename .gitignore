@@ -67,3 +67,6 @@ html/*.html
 *.Rda
 *.RData
 
+.Rproj.user
+.Rdata
+.quarto

@@ -5,37 +5,28 @@ date: "2024-01-10"
 ---
 
 
-## Datenframe für Table 1 erstellen (age, gender, country, study type)
+# Datenframe für Table 1 erstellen (age, gender, country, study type)
 
-
-
-# Age
+### Age
 ```{r }
 
+setwd("~/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Git/MetaanalysisCommonMetrics/02_scripts")
+
+library(here)
+setwd(here())
+
+file_path <- "01_data/Datenextraktion - komplett.xlsx"
+
 clean_and_transform_data <- function(sheet_name) {
-  # Dateipfad
-  file_path <- "/Users/miagrote/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/Datenextraktion - komplett.xlsx"
-  
-  # Daten einlesen
   Datenextraktion_komplett <- read_excel(file_path, sheet = sheet_name)
-  
-  # Spaltennamen, die "Mean age - gesamt - #" enthalten
   columns_to_select <- grep("Mean age - gesamt - #", names(Datenextraktion_komplett), value = TRUE)
-  
-  # Subset erstellen
   subset_dat <- Datenextraktion_komplett[, c("Study", columns_to_select)]
-  
-  # Daten umstrukturieren
   subset_dat_long <- subset_dat %>%
-    gather(key = "Variable", value = "Value", -Study)
-  
-  # NA's löschen
+  gather(key = "Variable", value = "Value", -Study)
   cleaned_subset_dat_long <- subset_dat_long %>%
-    filter(Value != "nicht zutreffend")
-  
+  filter(Value != "nicht zutreffend")
   return(cleaned_subset_dat_long)
 }
-
 
 # Liste der Blätter
 sheets <- c("BDI_CESD included only", "BDI_HADS included only", "BDI_PHQ included only",
@@ -50,8 +41,6 @@ for (sheet in sheets) {
   result_list[[sheet]] <- clean_and_transform_data(sheet)
 }
 
-
-
 # Funktion zum Überprüfen und Anpassen der Datentypen der "Value"-Spalte
 check_and_convert_value_column <- function(df) {
   if ("Value" %in% colnames(df)) {
@@ -60,60 +49,47 @@ check_and_convert_value_column <- function(df) {
   return(df)
 }
 
-# Anwenden der Funktion auf jeden Data Frame in result_list
 result_list <- lapply(result_list, check_and_convert_value_column)
 
-# Jetzt sollten die Datentypen vereinheitlicht sein, und bind_rows sollte funktionieren
 result_df_age <- dplyr::bind_rows(result_list)
-
-
-
 
 
 ```
 
 
 
-# gender
+### gender
 ```{r }
+
+library(here)
+setwd(here())
+
+
+# Define the relative file path
+file_path <- "01_data/Datenextraktion - komplett.xlsx"
+
 clean_and_transform_data <- function(sheet_name) {
-  # Dateipfad
-  file_path <- "/Users/miagrote/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/Datenextraktion - komplett.xlsx"
-  
-  # Daten einlesen
   Datenextraktion_komplett <- read_excel(file_path, sheet = sheet_name)
-  
-  # Spaltennamen, die "Sex/gender distribution - female % " enthalten
   columns_to_select <- grep("Sex/gender distribution - female % ", names(Datenextraktion_komplett), value = TRUE)
-  
-  # Subset erstellen
   subset_dat <- Datenextraktion_komplett[, c("Study", columns_to_select)]
-  
-  # Daten umstrukturieren
   subset_dat_long <- subset_dat %>%
-    gather(key = "Variable", value = "Value", -Study)
-  
-  # NA's löschen
+  gather(key = "Variable", value = "Value", -Study)
   cleaned_subset_dat_long <- subset_dat_long %>%
-    filter(Value != "nicht zutreffend")
-  
+  filter(Value != "nicht zutreffend")
   return(cleaned_subset_dat_long)
 }
-
 
 # Liste der Blätter
 sheets <- c("BDI_CESD included only", "BDI_HADS included only", "BDI_PHQ included only",
             "BDI_PROMIS included only", "CESD_HADS included only", "CESD_PHQ included only",
             "CESD_PROMIS included only", "PHQ_PROMIS included only", "HADS_PHQ included only" , "HADS_PROMIS included only")
 
-# Leere Liste für die Ergebnisse
 result_list <- list()
 
 # Schleife über alle Blätter
 for (sheet in sheets) {
   result_list[[sheet]] <- clean_and_transform_data(sheet)
 }
-
 
 
 # Funktion zum Überprüfen und Anpassen der Datentypen der "Value"-Spalte
@@ -126,52 +102,38 @@ check_and_convert_value_column <- function(df) {
 
 # Anwenden der Funktion auf jeden Data Frame in result_list
 result_list <- lapply(result_list, check_and_convert_value_column)
-
 
 # Die ganze Liste in einen Datenframe umwandeln
 result_df_gender <- dplyr::bind_rows(result_list)
 
 
-
 ```
 
 
-
-
-# country - kategorial
+### country - kategorial
 
 ```{r }
+library(here)
+setwd(here())
+
+file_path <- "01_data/Datenextraktion - komplett.xlsx"
+
 clean_and_transform_data <- function(sheet_name) {
-  # Dateipfad
-  file_path <- "/Users/miagrote/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/Datenextraktion - komplett.xlsx"
-  
-  # Daten einlesen
   Datenextraktion_komplett <- read_excel(file_path, sheet = sheet_name)
-  
-  # Spaltennamen, die "Study country/-ies" enthalten
   columns_to_select <- grep("Study country/-ies", names(Datenextraktion_komplett), value = TRUE)
-  
-  # Subset erstellen
   subset_dat <- Datenextraktion_komplett[, c("Study", columns_to_select)]
-  
-  # Daten umstrukturieren
   subset_dat_long <- subset_dat %>%
-    gather(key = "Variable", value = "Value", -Study)
-  
-  # NA's löschen
+  gather(key = "Variable", value = "Value", -Study)
   cleaned_subset_dat_long <- subset_dat_long %>%
-    filter(Value != "nicht zutreffend")
-  
+  filter(Value != "nicht zutreffend")
   return(cleaned_subset_dat_long)
 }
-
 
 # Liste der Blätter
 sheets <- c("BDI_CESD included only", "BDI_HADS included only", "BDI_PHQ included only",
             "BDI_PROMIS included only", "CESD_HADS included only", "CESD_PHQ included only",
             "CESD_PROMIS included only", "PHQ_PROMIS included only", "HADS_PHQ included only" , "HADS_PROMIS included only")
 
-# Leere Liste für die Ergebnisse
 result_list <- list()
 
 # Schleife über alle Blätter
@@ -193,9 +155,6 @@ result_list <- lapply(result_list, check_and_convert_value_column)
 
 # Jetzt sollten die Datentypen vereinheitlicht sein, und bind_rows sollte funktionieren
 result_df_country <- dplyr::bind_rows(result_list)
-
-
-# Die ganze Liste in einen Datenframe umwandeln
 result_df_country <- dplyr::bind_rows(result_list)
 
 # Ich habe nochmal nachgelesen und Studie von Haussmann ist in Deutschland 
@@ -205,47 +164,35 @@ result_df_country$Value[86] <- paste("Germany")
 ```
 
 
-# study type - kategorial
+### study type - kategorial
 ```{r }
+library(here)
+setwd(here())
+
+file_path <- "01_data/Datenextraktion - komplett.xlsx"
+
 clean_and_transform_data <- function(sheet_name) {
-  # Dateipfad
-  file_path <- "/Users/miagrote/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/Datenextraktion - komplett.xlsx"
-  
-  # Daten einlesen
   Datenextraktion_komplett <- read_excel(file_path, sheet = sheet_name)
-  
-  # Spaltennamen, die "Study type" enthalten
   columns_to_select <- grep("Study type", names(Datenextraktion_komplett), value = TRUE)
-  
-  # Subset erstellen
   subset_dat <- Datenextraktion_komplett[, c("Study", columns_to_select)]
-  
-  # Daten umstrukturieren
   subset_dat_long <- subset_dat %>%
-    gather(key = "Variable", value = "Value", -Study)
-  
-  # NA's löschen
+  gather(key = "Variable", value = "Value", -Study)
   cleaned_subset_dat_long <- subset_dat_long %>%
-    filter(Value != "nicht zutreffend")
-  
+  filter(Value != "nicht zutreffend")
   return(cleaned_subset_dat_long)
 }
-
 
 # Liste der Blätter
 sheets <- c("BDI_CESD included only", "BDI_HADS included only", "BDI_PHQ included only",
             "BDI_PROMIS included only", "CESD_HADS included only", "CESD_PHQ included only",
             "CESD_PROMIS included only", "PHQ_PROMIS included only", "HADS_PHQ included only" , "HADS_PROMIS included only")
 
-# Leere Liste für die Ergebnisse
 result_list <- list()
 
 # Schleife über alle Blätter
 for (sheet in sheets) {
   result_list[[sheet]] <- clean_and_transform_data(sheet)
 }
-
-
 
 
 # Funktion zum Überprüfen und Anpassen der Datentypen der "Value"-Spalte
@@ -258,43 +205,25 @@ check_and_convert_value_column <- function(df) {
 
 # Anwenden der Funktion auf jeden Data Frame in result_list
 result_list <- lapply(result_list, check_and_convert_value_column)
-
-# Jetzt sollten die Datentypen vereinheitlicht sein, und bind_rows sollte funktionieren
 result_df_studytype <- dplyr::bind_rows(result_list)
-
-# Die ganze Liste in einen Datenframe umwandeln
-result_df_studytype <- dplyr::bind_rows(result_list)
-
 
 ```
 
-# Anzahl Messzeitpunkte - kategorial
+### Anzahl Messzeitpunkte - kategorial
 ```{r }
+library(here)
+setwd(here())
 
-# of measurement time points in study (auf depression measures bezogen)
-
+file_path <- "01_data/Datenextraktion - komplett.xlsx"
 
 clean_and_transform_data <- function(sheet_name) {
-  # Dateipfad
-  file_path <- "/Users/miagrote/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/Datenextraktion - komplett.xlsx"
-  
-  # Daten einlesen
   Datenextraktion_komplett <- read_excel(file_path, sheet = sheet_name)
-  
-  # Spaltennamen, die "of measurement time points in study" enthalten
   columns_to_select <- grep("of measurement time points in study", names(Datenextraktion_komplett), value = TRUE)
-  
-  # Subset erstellen
   subset_dat <- Datenextraktion_komplett[, c("Study", columns_to_select)]
-  
-  # Daten umstrukturieren
   subset_dat_long <- subset_dat %>%
-    gather(key = "Variable", value = "Value", -Study)
-  
-  # NA's löschen
+  gather(key = "Variable", value = "Value", -Study)
   cleaned_subset_dat_long <- subset_dat_long %>%
-    filter(Value != "nicht zutreffend")
-  
+  filter(Value != "nicht zutreffend")
   return(cleaned_subset_dat_long)
 }
 
@@ -304,14 +233,12 @@ sheets <- c("BDI_CESD included only", "BDI_HADS included only", "BDI_PHQ include
             "BDI_PROMIS included only", "CESD_HADS included only", "CESD_PHQ included only",
             "CESD_PROMIS included only", "PHQ_PROMIS included only", "HADS_PHQ included only" , "HADS_PROMIS included only")
 
-# Leere Liste für die Ergebnisse
 result_list <- list()
 
 # Schleife über alle Blätter
 for (sheet in sheets) {
   result_list[[sheet]] <- clean_and_transform_data(sheet)
 }
-
 
 
 # Funktion zum Überprüfen und Anpassen der Datentypen der "Value"-Spalte
@@ -324,12 +251,7 @@ check_and_convert_value_column <- function(df) {
 
 # Anwenden der Funktion auf jeden Data Frame in result_list
 result_list <- lapply(result_list, check_and_convert_value_column)
-
-
-
-# Die ganze Liste in einen Datenframe umwandeln
 result_df_measurementTimePoints <- dplyr::bind_rows(result_list)
-
 
 #Mittelwert und SE rechnen
 result_df_measurementTimePoints$Value <- as.numeric(result_df_measurementTimePoints$Value)
@@ -344,34 +266,22 @@ se_value_measurementTimePoints <- sd(result_df_measurementTimePoints$Value, na.r
 
 result_df_measurementTimePoints[28, "Value"] <- 1
 
-
 ```
 
-# Anzahl Gruppen - kategorial 
+### Anzahl Gruppen - kategorial 
 ```{r }
+library(here)
+setwd(here())
 
-
+file_path <- "01_data/Datenextraktion - komplett.xlsx"
 clean_and_transform_data <- function(sheet_name) {
-  # Dateipfad
-  file_path <- "/Users/miagrote/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Metaanalyse/Datenextraktion - komplett.xlsx"
-  
-  # Daten einlesen
   Datenextraktion_komplett <- read_excel(file_path, sheet = sheet_name)
-  
-  # Spaltennamen, die "# of groups within study" enthalten
   columns_to_select <- grep("# of groups within study", names(Datenextraktion_komplett), value = TRUE)
-  
-  # Subset erstellen
   subset_dat <- Datenextraktion_komplett[, c("Study", columns_to_select)]
-  
-  # Daten umstrukturieren
   subset_dat_long <- subset_dat %>%
-    gather(key = "Variable", value = "Value", -Study)
-  
-  # NA's löschen
+  gather(key = "Variable", value = "Value", -Study)
   cleaned_subset_dat_long <- subset_dat_long %>%
-    filter(Value != "nicht zutreffend")
-  
+  filter(Value != "nicht zutreffend")
   return(cleaned_subset_dat_long)
 }
 
@@ -390,7 +300,6 @@ for (sheet in sheets) {
 }
 
 
-
 # Funktion zum Überprüfen und Anpassen der Datentypen der "Value"-Spalte
 check_and_convert_value_column <- function(df) {
   if ("Value" %in% colnames(df)) {
@@ -399,23 +308,8 @@ check_and_convert_value_column <- function(df) {
   return(df)
 }
 
-# Anwenden der Funktion auf jeden Data Frame in result_list
 result_list <- lapply(result_list, check_and_convert_value_column)
-
-
-
-# Die ganze Liste in einen Datenframe umwandeln
 result_df_groupsWithinStudy <- dplyr::bind_rows(result_list)
-
-
-#Mittelwert und SE rechnen
-#result_df_groupsWithinStudy$Value <- as.numeric(result_df_groupsWithinStudy$Value)
-
-#result_df_groupsWithinStudy<- result_df_groupsWithinStudy %>%
-  #mutate(Value = ifelse(grepl("nicht", Value, ignore.case = TRUE), NA, Value))
-
-#mean_value_groupsWithinStudy <- mean(result_df_groupsWithinStudy$Value, na.rm = TRUE)
-#se_value_groupsWithinStudy <- sd(result_df_groupsWithinStudy$Value, na.rm = TRUE) / sqrt(sum(!is.na(result_df_groupsWithinStudy$Value)))
 
 
 
@@ -423,10 +317,14 @@ result_df_groupsWithinStudy <- dplyr::bind_rows(result_list)
 
 
 
-# Cut Off: wie stark Depression - kategorial "wieviele Pat haben auf mindestens einem Fragebogen als depressiv gescored also einen PROMIS score von über 60 gehabt?"
+
+### Depression: "wieviele Pat hatten einen PROMIS score von über 60?"
+#### Dat short ist falsch..
 ```{r }
-# 50 ist Standart 
-# 60 ist eine Standartabweichung drüber
+library(here)
+setwd(here())
+
+file_path <- "01_data/Datenextraktion - komplett.xlsx"
 
 
 # Pfade zusammenfügen
@@ -471,13 +369,6 @@ result_df_mean <- result_df_mean %>%
 
 
 
-
-
-
-
-
-
-
 # Table 1 erstellen aus den oben gesammelten Informationen
 
 Alternativ: mit Tabelle Datenextraktion - komplett_Mia2 rechnen
@@ -489,11 +380,8 @@ country
 studytype
 measurementTimePoints
 groupsWithinStudy
-#mean
 Fragebogenkombination
 
-
-# Tabelle erstellen 
 ```{r }
 table1 <- data.frame(
   Variable = character(),
@@ -514,10 +402,15 @@ table1 <- rbind(data.frame(Variable = "Age, years (mean±SD)", category = "", am
 
 
 table1$Variable[c(4:9, 11:12, 14:15, 17:18, 20, 22, 23:25)] <- NA
+
+
+system("git config --global user.name 'MiaGrote'")
+system("git config --global user.email 'mia.grote@online.de'")
 ```
 
 
-# Tabelle befüllen: age -> ergibt 50.99582
+### Tabelle befüllen: age 
+-> ergibt 50.99582
 ```{r }
 
 #Mittelwert numerisch umwandeln, unique Values nehmen
@@ -543,16 +436,12 @@ rounded_sd <- round(sd_value_age, 1)
 table1$amount[1] <- paste(rounded_mean, " (±", rounded_sd, ")", sep = "")
 
 
-
-
-
 ```
 
 
-# Tabelle befüllen: gender -> ergibt 54.05586
+### Tabelle befüllen: gender 
+-> ergibt 54.05586
 ```{r }
-
-
 
 #Mittelwert numerisch umwandeln, unique Values nehmen
 result_df_gender$Value <- as.numeric(result_df_gender$Value)
@@ -577,11 +466,10 @@ rounded_sd <- round(sd_value_gender, 1)
 table1$amount[2] <- paste0(rounded_mean, "%")
 
 
-
-
 ```
 
-# Tabelle befüllen: country -> FRAGE: manche Studien haben in mehren Ländern stattgefunden. Zählt jedes Land einzeln
+### Tabelle befüllen: country 
+-> FRAGE: manche Studien haben in mehren Ländern stattgefunden. Zählt jedes Land einzeln
 ```{r }
 
 amount_usa <- sum(result_df_country$Value == "USA")
@@ -637,7 +525,7 @@ table1$amount[9] <- paste(amount_multi, " (", percent_multi, ")", sep = "")
 
 
 
-# Tabelle befüllen: RTC/Clinical Trial pbersational or other
+### Tabelle befüllen: RTC/Clinical Trial obersational or other
 
 ```{r }
 
@@ -677,13 +565,12 @@ table1$amount[12] <- paste(amount_other, " (", percent_other, ")", sep = "")
 
 
 
-# Tabelle befüllen: measurementTimePoints
+### Tabelle befüllen: measurementTimePoints
 ```{r }
 result_df_measurementTimePoints <- result_df_measurementTimePoints %>%
   group_by(Study) %>%
   summarize(across(everything(), ~ first(.[!is.na(.)]), .names = "{col}"))
 
-# Umgang mit NAs in Prozentzahlen??
 
 amount_Eins <- sum(result_df_measurementTimePoints$Value %in% "1")
 
@@ -702,7 +589,6 @@ percent_größerDrei <- round(percent_größerDrei, 1)
 
 
 # pleace in table
-
 table1$amount[13] <- paste(amount_Eins, " (", percent_Eins, ")", sep = "")
 table1$amount[14] <- paste(amount_zweiBisdrei, " (", percent_zweiBisdrei, ")", sep = "")
 table1$amount[15] <- paste(amount_größerDrei, " (", percent_größerDrei, ")", sep = "")
@@ -711,15 +597,11 @@ table1$amount[15] <- paste(amount_größerDrei, " (", percent_größerDrei, ")",
 
 ```
 
-# Tabelle befüllen: groupsWithinStudy
+### Tabelle befüllen: groupsWithinStudy
 ```{r }
 result_df_groupsWithinStudy <- result_df_groupsWithinStudy %>%
   group_by(Study) %>%
   summarize(across(everything(), ~ first(.[!is.na(.)]), .names = "{col}"))
-
-
-
-# Umgang mit NAs in Prozentzahlen??
 
 amount_Eins <- sum(result_df_groupsWithinStudy$Value %in% "1")
 percent_Eins <- (amount_Eins / 87) * 100
@@ -735,20 +617,18 @@ amount_größerDrei <- sum(result_df_groupsWithinStudy$Value %in% c("4", "5"))
 percent_größerDrei <- (amount_größerDrei / 87) * 100
 percent_größerDrei <- round(percent_größerDrei, 1)
 
-
 # pleace in table
-
 table1$amount[16] <- paste(amount_Eins, " (", percent_Eins, ")", sep = "")
 table1$amount[17] <- paste(amount_zweiBisdrei, " (", percent_zweiBisdrei, ")", sep = "")
 table1$amount[18] <- paste(amount_größerDrei, " (", percent_größerDrei, ")", sep = "")
 
 
-
 ```
 
 
-# Tabelle befüllen: mean -> Diagnose haben oder nicht ab PROMIS 60
-## das hier ist noch nicht auf studylevel
+### Tabelle befüllen: mean 
+-> Diagnose haben oder nicht ab PROMIS 60
+#### das hier ist noch nicht auf studylevel
 
 bdi cutoff:
 The cutoffs used are 0 to 13 for minimal depression, 14 to 19 for mild depression, 20 to 28 for moderate depression, and 29 to 63 for severe depression
@@ -756,7 +636,6 @@ The cutoffs used are 0 to 13 for minimal depression, 14 to 19 for mild depressio
 
 
 ```{r }
-
 
 result_df_mean <- result_df_mean %>%
   mutate(Depression_Status = strsplit(as.character(Depression_Status), ", ")) %>%
@@ -774,11 +653,10 @@ percent_Depressed <- round(percent_Depressed, 1)
 table1$amount[19] <- paste(amount_notDepressed, " (", percent_notDepressed, ")", sep = "")
 table1$amount[20] <- paste(amount_Depressed, " (", percent_Depressed, ")", sep = "")
 
-
 ```
 
 
-# Tabelle befüllen: auf studylevel: wie oft welcher Fragebogen genutzt
+### Tabelle befüllen: wie oft welcher Fragebogen genutzt
 
 
 ```{r }
@@ -791,8 +669,6 @@ result_df_mean <- result_df_mean %>%
   filter(!is.na(Study)) %>%
   group_by(Study) %>%
   summarize(across(everything(), ~ first(.[!is.na(.)]), .names = "{col}"))
-
-
 
 # händisch
 
@@ -825,68 +701,4 @@ table1$amount[25] <- paste(count_promis, " (", percent_promis, ")", sep = "")
 
 write.csv(table1, "/Users/miagrote/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Git/MetaanalysisCommonMetrics/04_results/table1.csv", row.names=FALSE)
 
-
-
-#write.png(table1, "/Users/miagrote/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Git/MetaanalysisCommonMetrics/04_results/table1.csv", row.names=FALSE)
-
 ```
-
-
-
-
-
-# export table1
-```{r }
-#write.csv(table1, "table1.csv", row.names = FALSE)
-
-```
-
-# Yves
-```{r}
-result_df_mean %>% 
-  group_by(Study) %>% 
-  slice(1)
-
-result_df_age %>% 
-  group_by(Study) %>% 
-  slice(1) %>% 
-  ungroup() %>% 
-  summarize(mean_age = mean(Value, na.rm = T))
-
-
-  table(result_df_mean$Groupinfo)
-  
-  result_list[[6]]
-  
-  
-#install.packages("janitor")
-library(janitor)
-```
-
-
-
-# Cleaning Yves Style
-
-## Sheet 1-x
-
-variables of interest:
-- y
--x
--study_type_cross_sectional_observational_cohort_case_control_interventional_clinical_trial_randomized_trial_method_study -> study_type, study_country_ies
-
-```{r}
-##read_excel(file_path, sheet = 6) %>% clean_names()
-
-```
-
-Structure
-
-instrument_combination | instrument | t-score
-bdi-hads                 hads         44
-bdi-hads                 Bdi          46
-## Combine datasets
-
-bind_rows()
-
-## Bring to https://docs.metapsy.org/data-preparation/format/ conventions
-
