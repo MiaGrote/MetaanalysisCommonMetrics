@@ -376,7 +376,7 @@ Blant_plot<- suppressWarnings({
   grid.arrange(BDIxCESD_BA_plot, BDIxHADS_BA_plot, BDIxPHQ_BA_plot, CESDxHADS_BA_plot, CESDxPHQ_BA_plot, PHQxPROMIS_BA_plot,HADSxPHQ_BA_plot, nrow = 2)
 })
 
-#ggsave("Blant_plot.png", Blant_plot, width = 10, height = 6, units = "in")
+ggsave("Blant_plot.png", Blant_plot, width = 10, height = 6, units = "in")
 
 
 ```
@@ -731,6 +731,6 @@ Blant_plot<- suppressWarnings({
   grid.arrange(BDIxCESD_BA_plot_weighted, BDIxHADS_BA_plot_weighted, BDIxPHQ_BA_plot_weighted, CESDxHADS_BA_plot_weighted, CESDxPHQ_BA_plot_weighted, PHQxPROMIS_BA_plot_weighted,HADSxPHQ_BA_plot_weighted, nrow = 2)
 })
 
-#ggsave("Blant_plot_weighted.png", Blant_plot, width = 10, height = 6, units = "in")
+ggsave("Blant_plot_weighted.png", Blant_plot, width = 10, height = 6, units = "in")
 ```
 

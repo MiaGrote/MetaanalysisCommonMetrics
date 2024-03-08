@@ -70,7 +70,7 @@ grp_b <- boxGrob(glue("Excluded",
                       "n = {recr}",
                       recr = txtInt(3),
                       .sep = "\n"))
-# not employed as self-reports, publication not in English/German).
+
 excluded <- boxGrob(glue("Excluded (n = {tot}):",
                        #  " - not two depression measures included: {nottwo}",
                        #  " - not assessed at the same time: {time}",
