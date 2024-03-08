@@ -695,6 +695,8 @@ table1$amount[23] <- paste(count_phq, " (", percent_phq, ")", sep = "")
 table1$amount[24] <- paste(count_hads, " (", percent_hads, ")", sep = "")
 table1$amount[25] <- paste(count_promis, " (", percent_promis, ")", sep = "")
 
-#write.csv(table1, "/Users/miagrote/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Git/MetaanalysisCommonMetrics/04_results/table1.csv", row.names=FALSE)
 
+
+file_path <- "../04_results/table1.csv"
+write.csv(table1, file = file_path, row.names = FALSE)
 ```
