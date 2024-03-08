@@ -322,10 +322,6 @@ setwd(here())
 file_path <- here("01_data", "Datenextraktion - komplett.xlsx")
 
 
-
-# Pfade zusammenfügen
-file_path <- file.path("~", "Library", "Mobile Documents", "com~apple~CloudDocs", "Documents", "2023", "CPCOR", "Metaanalyse", "dat_short.xlsx")
-
 # Daten aus der Excel-Datei lesen
 result_df_mean <- read_excel(file_path, skip = 1)
 

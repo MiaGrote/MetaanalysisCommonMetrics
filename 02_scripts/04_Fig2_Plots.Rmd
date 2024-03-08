@@ -406,9 +406,6 @@ Blant_plot<- suppressWarnings({
 })
 
 
-file_path <- "../04_results/Blant_plot.png"
-ggsave(file_path, Blant_plot, width = 10, height = 6, units = "in")
-
 ```
 
 
@@ -418,15 +415,15 @@ ggsave(file_path, Blant_plot, width = 10, height = 6, units = "in")
 ```{r }
 
 # der weighted mean ist nur eine Zahl weil er über alle Werte und Weights mittelt:
-BDIxCESD$weigh.mean.BDI <- weighted.mean(BDIxCESD$'BDI - PROMIS Skala', BDIxCESD$groupsize.y)
-BDIxCESD$weigh.mean.CESD <- weighted.mean(BDIxCESD$'CESD - PROMIS Skala', BDIxCESD$groupsize.y)
+BDIxCESD$weigh.mean.BDI <- weighted.mean(BDIxCESD$'BDI.-.PROMIS.Skala', BDIxCESD$groupsize.y)
+BDIxCESD$weigh.mean.CESD <- weighted.mean(BDIxCESD$'CESD.-.PROMIS.Skala', BDIxCESD$groupsize.y)
 BDIxCESD$weigh.diff <- BDIxCESD$weigh.mean.BDI - BDIxCESD$weigh.mean.CESD
 
 #create a new column for average measurement
-BDIxCESD$avg <- rowMeans(BDIxCESD[c('BDI - PROMIS Skala', 'CESD - PROMIS Skala')], na.rm = TRUE)
+BDIxCESD$avg <- rowMeans(BDIxCESD[c('BDI.-.PROMIS.Skala', 'CESD.-.PROMIS.Skala')], na.rm = TRUE)
 
 #create a new column for differences
-BDIxCESD$diff <- BDIxCESD$'BDI - PROMIS Skala' - BDIxCESD$'CESD - PROMIS Skala'
+BDIxCESD$diff <- BDIxCESD$'BDI.-.PROMIS.Skala' - BDIxCESD$'CESD.-.PROMIS.Skala'
 
 #find an average difference
 mean_diff <- mean(BDIxCESD$diff)
@@ -465,15 +462,15 @@ BDIxCESD_BA_plot_weighted <- ggplot(BDIxCESD, aes(x = avg, y = diff)) +
 ```{r }
 
 # Calculate weighted means
-weigh.mean.BDI <- weighted.mean(BDIxHADS$'BDI - PROMIS Skala', BDIxHADS$groupsize.y)
-weigh.mean.HADS <- weighted.mean(BDIxHADS$'HADS - PROMIS Skala', BDIxHADS$groupsize.y)
+weigh.mean.BDI <- weighted.mean(BDIxHADS$'BDI.-.PROMIS.Skala', BDIxHADS$groupsize.y)
+weigh.mean.HADS <- weighted.mean(BDIxHADS$'HADS.-.PROMIS.Skala', BDIxHADS$groupsize.y)
 weigh.diff <- weigh.mean.BDI - weigh.mean.HADS
 
 # Create a new column for average measurement
-BDIxHADS$avg <- rowMeans(BDIxHADS[c('BDI - PROMIS Skala', 'HADS - PROMIS Skala')], na.rm = TRUE)
+BDIxHADS$avg <- rowMeans(BDIxHADS[c('BDI.-.PROMIS.Skala', 'HADS.-.PROMIS.Skala')], na.rm = TRUE)
 
 # Create a new column for differences
-BDIxHADS$diff <- BDIxHADS$'BDI - PROMIS Skala' - BDIxHADS$'HADS - PROMIS Skala'
+BDIxHADS$diff <- BDIxHADS$'BDI.-.PROMIS.Skala' - BDIxHADS$'HADS.-.PROMIS.Skala'
 
 # Find the average difference
 mean_diff <- mean(BDIxHADS$diff)
@@ -508,18 +505,16 @@ BDIxHADS_BA_plot_weighted <- ggplot(BDIxHADS, aes(x = avg, y = diff)) +
 ```
 ####BDIxPHQ
 ```{r }
-# Assuming BDIxPHQ is a data frame with columns 'BDI - PROMIS Skala', 'PHQ - PROMIS Skala', and 'groupsize.y'
-
 # Calculate weighted means
-weigh.mean.BDI <- weighted.mean(BDIxPHQ$'BDI - PROMIS Skala', BDIxPHQ$groupsize.y)
-weigh.mean.PHQ <- weighted.mean(BDIxPHQ$'PHQ - PROMIS Skala', BDIxPHQ$groupsize.y)
+weigh.mean.BDI <- weighted.mean(BDIxPHQ$'BDI.-.PROMIS.Skala', BDIxPHQ$groupsize.y)
+weigh.mean.PHQ <- weighted.mean(BDIxPHQ$'PHQ.-.PROMIS.Skala', BDIxPHQ$groupsize.y)
 weigh.diff <- weigh.mean.BDI - weigh.mean.PHQ
 
 # Create a new column for average measurement
-BDIxPHQ$avg <- rowMeans(BDIxPHQ[c('BDI - PROMIS Skala', 'PHQ - PROMIS Skala')], na.rm = TRUE)
+BDIxPHQ$avg <- rowMeans(BDIxPHQ[c('BDI.-.PROMIS.Skala', 'PHQ.-.PROMIS.Skala')], na.rm = TRUE)
 
 # Create a new column for differences
-BDIxPHQ$diff <- BDIxPHQ$'BDI - PROMIS Skala' - BDIxPHQ$'PHQ - PROMIS Skala'
+BDIxPHQ$diff <- BDIxPHQ$'BDI.-.PROMIS.Skala' - BDIxPHQ$'PHQ.-.PROMIS.Skala'
 
 # Find the average difference
 mean_diff <- mean(BDIxPHQ$diff)
@@ -552,21 +547,71 @@ BDIxPHQ_BA_plot_weighted <- ggplot(BDIxPHQ, aes(x = avg, y = diff)) +
   ylim(-15, 25)
 
 ```
+####BDIxPROMIS
+```{r }
+
+# Assuming your data frame is named BDIxPROMIS
+
+# Calculate weighted means
+weigh.mean.BDI <- weighted.mean(BDIxPROMIS$'BDI.-.PROMIS.Skala', BDIxPROMIS$groupsize.y)
+weigh.mean.PROMIS <- weighted.mean(BDIxPROMIS$'PROMIS', BDIxPROMIS$groupsize.y)
+weigh.diff <- weigh.mean.BDI - weigh.mean.PROMIS
+
+# Create a new column for average measurement
+BDIxPROMIS$avg <- rowMeans(BDIxPROMIS[c('BDI.-.PROMIS.Skala', 'PROMIS')], na.rm = TRUE)
+
+# Create a new column for differences
+BDIxPROMIS$diff <- BDIxPROMIS$'BDI.-.PROMIS.Skala' - BDIxPROMIS$'PROMIS'
+
+# Find the average difference
+mean_diff <- mean(BDIxPROMIS$diff)
+
+# Find lower 95% confidence interval limits
+lower <- mean_diff - 1.96 * sd(BDIxPROMIS$diff)
+
+# Find upper 95% confidence interval limits
+upper <- mean_diff + 1.96 * sd(BDIxPROMIS$diff)
+
+# Create the Bland-Altman Plot
+library(ggplot2)
+BDIxPROMIS_BA_plot_weighted <- ggplot(BDIxPROMIS, aes(x = avg, y = diff)) +
+  geom_point(size=1) +
+  geom_hline(yintercept = mean_diff, linetype="dashed", lwd=0.5) +
+  geom_hline(yintercept = lower, color = "red", linetype="dashed") +
+  geom_hline(yintercept = upper, color = "red", linetype="dashed") +
+  geom_hline(yintercept = 0, color = "blue") +
+  ggtitle("BDIxPROMIS") +
+  ylab("Difference Between Instruments") +
+  theme_bw() +
+  theme(
+    text = element_text(size = 8),  
+    axis.title = element_text(size = 6),
+    axis.text = element_text(size = 8),
+    plot.title = element_text(size = 8) 
+  ) +
+  xlim(40, 80) +
+  ylim(-15, 25)
+
+
+
+```
+
+
 ####CESDxHADS
 ```{r }
 
 # Assuming CESDxHADS contains CESD and HADS scores
 
 # Calculate weighted means
-weigh.mean.CESD <- weighted.mean(CESDxHADS$'CESD - PROMIS Skala', CESDxHADS$groupsize.y)
-weigh.mean.HADS <- weighted.mean(CESDxHADS$'HADS - PROMIS Skala', CESDxHADS$groupsize.y)
+weigh.mean.CESD <- weighted.mean(CESDxHADS$'CESD.-.PROMIS.Skala', CESDxHADS$groupsize.y)
+weigh.mean.HADS <- weighted.mean(CESDxHADS$'HADS.-.PROMIS.Skala', CESDxHADS$groupsize.y)
 weigh.diff <- weigh.mean.CESD - weigh.mean.HADS
 
 # Create a new column for average measurement
-CESDxHADS$avg <- rowMeans(CESDxHADS[c('CESD - PROMIS Skala', 'HADS - PROMIS Skala')], na.rm = TRUE)
+CESDxHADS$avg <- rowMeans(CESDxHADS[c('CESD.-.PROMIS.Skala', 'HADS.-.PROMIS.Skala')], na.rm = TRUE)
 
 # Create a new column for differences
-CESDxHADS$diff <- CESDxHADS$'CESD - PROMIS Skala' - CESDxHADS$'HADS - PROMIS Skala'
+CESDxHADS$diff <- CESDxHADS$'CESD.-.PROMIS.Skala' - CESDxHADS$'HADS.-.PROMIS.Skala'
 
 # Find the average difference
 mean_diff <- mean(CESDxHADS$diff)
@@ -606,15 +651,15 @@ CESDxHADS_BA_plot_weighted <- ggplot(CESDxHADS, aes(x = avg, y = diff)) +
 # Assuming your data frame is named CESDxPHQ
 
 # Calculate weighted means
-weigh.mean.CESD <- weighted.mean(CESDxPHQ$'CESD - PROMIS Skala', CESDxPHQ$groupsize.y)
-weigh.mean.PHQ <- weighted.mean(CESDxPHQ$'PHQ - PROMIS Skala', CESDxPHQ$groupsize.y)
+weigh.mean.CESD <- weighted.mean(CESDxPHQ$'CESD.-.PROMIS.Skala', CESDxPHQ$groupsize.y)
+weigh.mean.PHQ <- weighted.mean(CESDxPHQ$'PHQ.-.PROMIS.Skala', CESDxPHQ$groupsize.y)
 weigh.diff <- weigh.mean.CESD - weigh.mean.PHQ
 
 # Create a new column for average measurement
-CESDxPHQ$avg <- rowMeans(CESDxPHQ[c('CESD - PROMIS Skala', 'PHQ - PROMIS Skala')], na.rm = TRUE)
+CESDxPHQ$avg <- rowMeans(CESDxPHQ[c('CESD.-.PROMIS.Skala', 'PHQ.-.PROMIS.Skala')], na.rm = TRUE)
 
 # Create a new column for differences
-CESDxPHQ$diff <- CESDxPHQ$'CESD - PROMIS Skala' - CESDxPHQ$'PHQ - PROMIS Skala'
+CESDxPHQ$diff <- CESDxPHQ$'CESD.-.PROMIS.Skala' - CESDxPHQ$'PHQ.-.PROMIS.Skala'
 
 # Find the average difference
 mean_diff <- mean(CESDxPHQ$diff)
@@ -653,15 +698,15 @@ CESDxPHQ_BA_plot_weighted <- ggplot(CESDxPHQ, aes(x = avg, y = diff)) +
 # Assuming your data frame is named PHQxPROMIS
 
 # Calculate weighted means
-weigh.mean.PHQ <- weighted.mean(PHQxPROMIS$'PHQ - PROMIS Skala', PHQxPROMIS$groupsize.y)
+weigh.mean.PHQ <- weighted.mean(PHQxPROMIS$'PHQ.-.PROMIS.Skala', PHQxPROMIS$groupsize.y)
 weigh.mean.PROMIS <- weighted.mean(PHQxPROMIS$'PROMIS', PHQxPROMIS$groupsize.y)
 weigh.diff <- weigh.mean.PHQ - weigh.mean.PROMIS
 
 # Create a new column for average measurement
-PHQxPROMIS$avg <- rowMeans(PHQxPROMIS[c('PHQ - PROMIS Skala', 'PROMIS')], na.rm = TRUE)
+PHQxPROMIS$avg <- rowMeans(PHQxPROMIS[c('PHQ.-.PROMIS.Skala', 'PROMIS')], na.rm = TRUE)
 
 # Create a new column for differences
-PHQxPROMIS$diff <- PHQxPROMIS$'PHQ - PROMIS Skala' - PHQxPROMIS$'PROMIS'
+PHQxPROMIS$diff <- PHQxPROMIS$'PHQ.-.PROMIS.Skala' - PHQxPROMIS$'PROMIS'
 
 # Find the average difference
 mean_diff <- mean(PHQxPROMIS$diff)
@@ -698,15 +743,15 @@ PHQxPROMIS_BA_plot_weighted <- ggplot(PHQxPROMIS, aes(x = avg, y = diff)) +
 # Assuming your data frame is named HADSxPHQ
 
 # Calculate weighted means
-weigh.mean.HADS <- weighted.mean(HADSxPHQ$'HADS - PROMIS Skala', HADSxPHQ$groupsize.y)
-weigh.mean.PHQ <- weighted.mean(HADSxPHQ$'PHQ - PROMIS Skala', HADSxPHQ$groupsize.y)
+weigh.mean.HADS <- weighted.mean(HADSxPHQ$'HADS.-.PROMIS.Skala', HADSxPHQ$groupsize.y)
+weigh.mean.PHQ <- weighted.mean(HADSxPHQ$'PHQ.-.PROMIS.Skala', HADSxPHQ$groupsize.y)
 weigh.diff <- weigh.mean.HADS - weigh.mean.PHQ
 
 # Create a new column for average measurement
-HADSxPHQ$avg <- rowMeans(HADSxPHQ[c('HADS - PROMIS Skala', 'PHQ - PROMIS Skala')], na.rm = TRUE)
+HADSxPHQ$avg <- rowMeans(HADSxPHQ[c('HADS.-.PROMIS.Skala', 'PHQ.-.PROMIS.Skala')], na.rm = TRUE)
 
 # Create a new column for differences
-HADSxPHQ$diff <- HADSxPHQ$'HADS - PROMIS Skala' - HADSxPHQ$'PHQ - PROMIS Skala'
+HADSxPHQ$diff <- HADSxPHQ$'HADS.-.PROMIS.Skala' - HADSxPHQ$'PHQ.-.PROMIS.Skala'
 
 # Find the average difference
 mean_diff <- mean(HADSxPHQ$diff)
@@ -752,12 +797,13 @@ Blant_plot_weighted <- suppressWarnings({
   BDIxCESD_BA_plot_weighted
   BDIxHADS_BA_plot_weighted 
   BDIxPHQ_BA_plot_weighted
+  BDIxPROMIS_BA_plot_weighted
   CESDxHADS_BA_plot_weighted
   CESDxPHQ_BA_plot_weighted
   PHQxPROMIS_BA_plot_weighted
   HADSxPHQ_BA_plot_weighted 
 
-  grid.arrange(BDIxCESD_BA_plot_weighted, BDIxHADS_BA_plot_weighted, BDIxPHQ_BA_plot_weighted, CESDxHADS_BA_plot_weighted, CESDxPHQ_BA_plot_weighted, PHQxPROMIS_BA_plot_weighted,HADSxPHQ_BA_plot_weighted, nrow = 2)
+  grid.arrange(BDIxCESD_BA_plot_weighted, BDIxHADS_BA_plot_weighted, BDIxPHQ_BA_plot_weighted, BDIxPROMIS_BA_plot_weighted, CESDxHADS_BA_plot_weighted, CESDxPHQ_BA_plot_weighted, PHQxPROMIS_BA_plot_weighted,HADSxPHQ_BA_plot_weighted, nrow = 2)
 })
 
 

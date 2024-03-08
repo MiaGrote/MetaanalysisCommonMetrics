@@ -191,6 +191,9 @@ subset_BDI_group$Variable <- gsub("^\\s*([0-9]+)\\s*", "\\1", subset_BDI_group$V
 # LEFT join um Gruppengröße mit dabei zu haben
 SUBSET_BDI <- left_join(subset_BDI, subset_BDI_group, by = c("Study", "Variable"))
 
+file_path <- "../01_data/SUBSET_BDI.xlsx"
+write.xlsx(SUBSET_BDI, file_path, rowNames = FALSE)
+
 ```
 
 ## Für PHQ
@@ -266,7 +269,8 @@ subset_PHQ$Variable <- sub("(\\d)\\s", "\\1", subset_PHQ$Variable)
 
 SUBSET_PHQ <- left_join(subset_PHQ, subset_PHQ_group, by = c("Study", "Variable"))
 
-
+file_path <- "../01_data/SUBSET_PHQ.xlsx"
+write.xlsx(SUBSET_PHQ, file_path, rowNames = FALSE)
 
 ```
 
@@ -346,6 +350,8 @@ subset_HADS$Variable <- sub("(\\d)\\s", "\\1", subset_HADS$Variable)
 
 SUBSET_HADS <- left_join(subset_HADS, subset_HADS_group, by = c("Study", "Variable"))
 
+file_path <- "../01_data/SUBSET_HADS.xlsx"
+write.xlsx(SUBSET_HADS, file_path, rowNames = FALSE)
 ```
 
 
@@ -426,6 +432,9 @@ subset_CESD$Variable <- sub("(\\d)\\s", "\\1", subset_CESD$Variable)
 
 SUBSET_CESD <- left_join(subset_CESD, subset_CESD_group, by = c("Study", "Variable"))
 
+file_path <- "../01_data/SUBSET_CESD.xlsx"
+write.xlsx(SUBSET_CESD, file_path, rowNames = FALSE)
+
 ```
 
 ## Für PROMIS
@@ -501,6 +510,8 @@ SUBSET_PROMIS <- left_join(subset_PROMIS, subset_PROMIS_group, by = c("Study", "
 SUBSET_PROMIS <- SUBSET_PROMIS %>%
   select(-`PROMIS Score`, -Value)
 
+file_path <- "../01_data/SUBSET_PROMIS.xlsx"
+write.xlsx(SUBSET_PROMIS, file_path, rowNames = FALSE)
 
 ```
 
