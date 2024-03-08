@@ -15,7 +15,6 @@ date: "2024-01-10"
 library(tidyr)
 library(readxl)
 library(dplyr)
-library(openxlsx)
 library(ggplot2)
 library(stringr)
 library(janitor)
@@ -26,10 +25,7 @@ library(janitor)
 
 ```{r }
 
-library(here)
-setwd(here())
-
-file_path <- here("01_data", "Datenextraktion - komplett.xlsx")
+file_path <- ("../01_data/Datenextraktion - komplett.xlsx")
 
 # Funktion zur Bereinigung und Umwandlung der Daten
 clean_and_transform_data <- function(sheet_name) {
@@ -53,6 +49,7 @@ result_list <- list()
 
 # Schleife über alle Blätter
 for (sheet in sheets) {
+  print(sheet)
   result_list[[sheet]] <- clean_and_transform_data(sheet)
 }
 
@@ -66,10 +63,6 @@ result_df$Value <- as.numeric(result_df$Value)
 ## Eine Tabelle im long Format erstellen, die alle Kombinationen an Fragebögen mit deren ID und Werten festhält FÜR GROUP size
 
 ```{r }
-library(here)
-setwd(here())
-
-file_path <- here("01_data", "Datenextraktion - komplett.xlsx")
 
 # Funktion zur Bereinigung und Umwandlung der Daten
 clean_and_transform_data <- function(sheet_name) {
@@ -106,13 +99,11 @@ result_df_group <- result_df_group %>%
 # LookUp Tabellen hochladen und vorbereiten
 
 ```{r}
-library(here)
-setwd(here())
 
-LookUp_PHQ <- read_excel("01_data/LookUp_PHQ.xlsx")
-LookUp_HADS <- read_excel("01_data/LookUp_HADS.xlsx")
-LookUp_CESD <- read_excel("01_data/LookUp_CESD.xlsx")
-LookUp_BDI <- read_excel("01_data/LookUp_BDI.xlsx")
+LookUp_PHQ <- read_excel("../01_data/LookUp_PHQ.xlsx")
+LookUp_HADS <- read_excel("../01_data/LookUp_HADS.xlsx")
+LookUp_CESD <- read_excel("../01_data/LookUp_CESD.xlsx")
+LookUp_BDI <- read_excel("../01_data/LookUp_BDI.xlsx")
 
 ## umbenennen zum Datensätze mergen
 
