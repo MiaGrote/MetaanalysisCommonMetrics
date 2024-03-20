@@ -463,6 +463,7 @@ BDIxCESD$diff <- BDIxCESD$'BDI.-.PROMIS.Skala' - BDIxCESD$'CESD.-.PROMIS.Skala'
 
 #find an average difference
 mean_diff <- mean(BDIxCESD$diff)
+mean_diff_bdixcesd <- mean_diff
 
 #find lower 95% confidence interval limits
 lower <- mean_diff - 1.96*sd(BDIxCESD$diff)
@@ -510,6 +511,7 @@ BDIxHADS$diff <- BDIxHADS$'BDI.-.PROMIS.Skala' - BDIxHADS$'HADS.-.PROMIS.Skala'
 
 # Find the average difference
 mean_diff <- mean(BDIxHADS$diff)
+mean_diff_bdixhads <- mean_diff
 
 # Find lower 95% confidence interval limits
 lower <- mean_diff - 1.96 * sd(BDIxHADS$diff)
@@ -554,6 +556,7 @@ BDIxPHQ$diff <- BDIxPHQ$'BDI.-.PROMIS.Skala' - BDIxPHQ$'PHQ.-.PROMIS.Skala'
 
 # Find the average difference
 mean_diff <- mean(BDIxPHQ$diff)
+mean_diff_bdixphq <- mean_diff
 
 # Find lower 95% confidence interval limits
 lower <- mean_diff - 1.96 * sd(BDIxPHQ$diff)
@@ -601,6 +604,7 @@ BDIxPROMIS$diff <- BDIxPROMIS$'BDI.-.PROMIS.Skala' - BDIxPROMIS$'PROMIS'
 
 # Find the average difference
 mean_diff <- mean(BDIxPROMIS$diff)
+mean_diff_bdixpromis <- mean_diff
 
 # Find lower 95% confidence interval limits
 lower <- mean_diff - 1.96 * sd(BDIxPROMIS$diff)
@@ -651,6 +655,7 @@ CESDxHADS$diff <- CESDxHADS$'CESD.-.PROMIS.Skala' - CESDxHADS$'HADS.-.PROMIS.Ska
 
 # Find the average difference
 mean_diff <- mean(CESDxHADS$diff)
+mean_diff_cesdxhads <- mean_diff
 
 # Find lower 95% confidence interval limits
 lower <- mean_diff - 1.96 * sd(CESDxHADS$diff)
@@ -699,6 +704,7 @@ CESDxPHQ$diff <- CESDxPHQ$'CESD.-.PROMIS.Skala' - CESDxPHQ$'PHQ.-.PROMIS.Skala'
 
 # Find the average difference
 mean_diff <- mean(CESDxPHQ$diff)
+mean_diff_cesdxphq <- mean_diff
 
 # Find lower 95% confidence interval limits
 lower <- mean_diff - 1.96 * sd(CESDxPHQ$diff)
@@ -746,6 +752,7 @@ PHQxPROMIS$diff <- PHQxPROMIS$'PHQ.-.PROMIS.Skala' - PHQxPROMIS$'PROMIS'
 
 # Find the average difference
 mean_diff <- mean(PHQxPROMIS$diff)
+mean_diff_phqxpromis <- mean_diff
 
 # Find lower 95% confidence interval limits
 lower <- mean_diff - 1.96 * sd(PHQxPROMIS$diff)
@@ -791,12 +798,15 @@ HADSxPHQ$diff <- HADSxPHQ$'HADS.-.PROMIS.Skala' - HADSxPHQ$'PHQ.-.PROMIS.Skala'
 
 # Find the average difference
 mean_diff <- mean(HADSxPHQ$diff)
+mean_diff_hadsxphq <- mean_diff
 
 # Find lower 95% confidence interval limits
 lower <- mean_diff - 1.96 * sd(HADSxPHQ$diff)
 
 # Find upper 95% confidence interval limits
 upper <- mean_diff + 1.96 * sd(HADSxPHQ$diff)
+
+
 
 # Create the Bland-Altman Plot
 library(ggplot2)
@@ -850,4 +860,48 @@ ggsave(file_path, Blant_plot_weighted, width = 10, height = 6, units = "in")
 
 
 ```
+## Mean diff und sd über alle berrechnen
+```{r }
+overall_mean <- mean(mean_diff_bdixcesd, mean_diff_bdixhads, mean_diff_bdixphq, mean_diff_bdixpromis, mean_diff_cesdxhads, mean_diff_cesdxphq, mean_diff_phqxpromis, mean_diff_hadsxphq)
 
+
+sd_bdi_BDIxCESD <- sd(BDIxCESD$`BDI.-.PROMIS.Skala`)
+sd_bdi_BDIxHADS <- sd(BDIxHADS$`BDI.-.PROMIS.Skala`)
+sd_bdi_BDIxPHQ <- sd(BDIxPHQ$`BDI.-.PROMIS.Skala`)
+sd_bdi_BDIxPROMIS <- sd(BDIxPROMIS$`BDI.-.PROMIS.Skala`)
+
+sd_cesd_BDIxCESD <- sd(BDIxCESD$`CESD.-.PROMIS.Skala`)
+sd_hads_BDIxHADS <- sd(BDIxHADS$`HADS.-.PROMIS.Skala`)
+sd_phq_BDIxPHQ <- sd(BDIxPHQ$`PHQ.-.PROMIS.Skala`)
+sd_promis_BDIxPROMIS <- sd(BDIxPROMIS$`PROMIS`)
+
+sd_cesd_CESDxHADS <- sd(CESDxHADS$`CESD.-.PROMIS.Skala`)
+sd_cesd_CESDxPHQ <- sd(CESDxPHQ$`CESD.-.PROMIS.Skala`)
+
+sd_hads_CESDxHADS <- sd(CESDxHADS$`HADS.-.PROMIS.Skala`)
+sd_phq_CESDxPHQ <- sd(CESDxPHQ$`PHQ.-.PROMIS.Skala`)
+
+sd_phq_PHQxPROMIS <- sd(PHQxPROMIS$`PHQ.-.PROMIS.Skala`)
+
+sd_promis_PHQxPROMIS <- sd(PHQxPROMIS$`PROMIS`)
+
+sd_hads_HADSxPHQ <- sd(HADSxPHQ$`HADS.-.PROMIS.Skala`)
+
+sd_phq_HADSxPHQ <- sd(HADSxPHQ$`PHQ.-.PROMIS.Skala`)
+
+standardabweichungen <- c(
+  sd_bdi_BDIxCESD, sd_bdi_BDIxHADS, sd_bdi_BDIxPHQ, sd_bdi_BDIxPROMIS,
+  sd_cesd_BDIxCESD, sd_hads_BDIxHADS, sd_phq_BDIxPHQ, sd_promis_BDIxPROMIS,
+  sd_cesd_CESDxHADS, sd_cesd_CESDxPHQ,
+  sd_hads_CESDxHADS, sd_phq_CESDxPHQ,
+  sd_phq_PHQxPROMIS, sd_promis_PHQxPROMIS,
+  sd_hads_HADSxPHQ, sd_phq_HADSxPHQ
+)
+
+mean_standardabweichungen <- mean(standardabweichungen)
+
+print(mean_standardabweichungen)
+
+
+
+```
