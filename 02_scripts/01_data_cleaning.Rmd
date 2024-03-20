@@ -12,6 +12,7 @@ date: "2024-01-10"
 #install.packages("dplyr")
 #install.packages("ggplot2")
 
+library(openxlsx)
 library(tidyr)
 library(readxl)
 library(dplyr)
@@ -79,7 +80,7 @@ clean_and_transform_data <- function(sheet_name) {
 # Liste der Blätter
 sheets <- c("BDI_CESD included only", "BDI_HADS included only", "BDI_PHQ included only",
             "BDI_PROMIS included only", "CESD_HADS included only", "CESD_PHQ included only",
-            "CESD_PROMIS included only", "PHQ_PROMIS included only")
+            "CESD_PROMIS included only", "PHQ_PROMIS included only", "HADS_PHQ included only" , "HADS_PROMIS included only")
 
 result_list <- list()
 
