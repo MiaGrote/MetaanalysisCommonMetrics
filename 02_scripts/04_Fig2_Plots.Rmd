@@ -6,62 +6,98 @@ date: "2024-01-10"
 # Scatterplots
 ## load data
 ```{r }
+library(readxl)
+library(dplyr)
+library(openxlsx)
+
 file_path <- "../01_data/SUBSET_BDI.xlsx"
-SUBSET_BDI <- read.xlsx(file_path)
+SUBSET_BDI <- read.xlsx(file_path)  %>% unique()
 
 file_path <- "../01_data/SUBSET_CESD.xlsx"
-SUBSET_CESD <- read.xlsx(file_path)
+SUBSET_CESD <- read.xlsx(file_path) %>% unique()
 
 file_path <- "../01_data/SUBSET_HADS.xlsx"
-SUBSET_HADS <- read.xlsx(file_path)
+SUBSET_HADS <- read.xlsx(file_path) %>% unique()
 
 file_path <- "../01_data/SUBSET_PHQ.xlsx"
-SUBSET_PHQ <- read.xlsx(file_path)
+SUBSET_PHQ <- read.xlsx(file_path) %>% unique()
 
 file_path <- "../01_data/SUBSET_PROMIS.xlsx"
-SUBSET_PROMIS <- read.xlsx(file_path)
+SUBSET_PROMIS <- read.xlsx(file_path) %>% unique()
 
 ```
 
 ## Left join für Plots 
 
 ```{r }
-BDIxCESD <- left_join(SUBSET_BDI, SUBSET_CESD, by = c("Study", "Variable")) %>%
-  filter(complete.cases(BDI, CESD))
+library(Hmisc)
 
-#Fehlerhafte Zeilen händisch löschen
+BDIxCESD = inner_join(SUBSET_BDI, SUBSET_CESD, by = c("Study", "Variable")) %>% unique()
+BDIxHADS <- inner_join(SUBSET_BDI, SUBSET_HADS, by = c("Study", "Variable")) %>%unique()
+BDIxPHQ <- inner_join(SUBSET_BDI, SUBSET_PHQ, by = c("Study", "Variable")) %>%unique()
+BDIxPROMIS <- inner_join(SUBSET_BDI, SUBSET_PROMIS, by = c("Study", "Variable")) %>%unique()
+CESDxHADS <- inner_join(SUBSET_CESD, SUBSET_HADS, by = c("Study", "Variable")) %>%unique()
+CESDxPHQ <- inner_join(SUBSET_CESD, SUBSET_PHQ, by = c("Study", "Variable")) %>%unique()
+CESDxPROMIS <- inner_join(SUBSET_CESD, SUBSET_PROMIS, by = c("Study", "Variable")) %>%unique()
+HADSxPHQ <- inner_join(SUBSET_HADS, SUBSET_PHQ, by = c("Study", "Variable")) %>%unique()
+HADSxPROMIS <- inner_join(SUBSET_HADS, SUBSET_PROMIS, by = c("Study", "Variable")) %>%unique()
+PHQxPROMIS <- inner_join(SUBSET_PHQ, SUBSET_PROMIS, by = c("Study", "Variable"))%>%unique()
 
-BDIxCESD <- BDIxCESD %>%
-  slice(-4, -5, -6)
+results = list(BDIxCESD, BDIxHADS, BDIxPHQ, 
+BDIxPROMIS, CESDxHADS, CESDxPHQ, CESDxPROMIS, HADSxPHQ, 
+HADSxPROMIS, PHQxPROMIS)
+names(results) =  c("BDIxCESD", "BDIxHADS", "BDIxPHQ", 
+"BDIxPROMIS", "CESDxHADS", "CESDxPHQ", "CESDxPROMIS", "HADSxPHQ", 
+"HADSxPROMIS", "PHQxPROMIS")
 
-BDIxHADS <- left_join(SUBSET_BDI, SUBSET_HADS, by = c("Study", "Variable")) %>%
-  filter(complete.cases(BDI, HADS))
+results$BDIxPROMIS$PROMIS_PROMIS.Skala = results$BDIxPROMIS$PROMIS
 
-BDIxPHQ <- left_join(SUBSET_BDI, SUBSET_PHQ, by = c("Study", "Variable")) %>%
-  filter(complete.cases(BDI, PHQ))
+results2 = lapply(names(results), function(x){
+results[[x]]$measure_1 = strsplit(x, "x")[[1]][1]
+results[[x]]$measure_2 = strsplit(x, "x")[[1]][2]
+results[[x]]$value_1 = results[[x]][, grep("PROMIS", names(results[[x]]))[1]]
+results[[x]]$value_2 =  results[[x]][, grep("PROMIS", names(results[[x]]))[2]]
+results[[x]]$groupsize = results[[x]][,"groupsize.x"]
+results[[x]][, c("Study", "Variable", "measure_1", "measure_2", "value_1", "value_2", "groupsize")]
+})
 
-BDIxPROMIS <- left_join(SUBSET_BDI, SUBSET_PROMIS, by = c("Study", "Variable")) %>%
-  filter(complete.cases(BDI, PROMIS))
+results3 = bind_rows(results2)
+library(ggplot2)
+results3$groupsize = as.numeric(results3$groupsize)
 
-CESDxHADS <- left_join(SUBSET_CESD, SUBSET_HADS, by = c("Study", "Variable")) %>%
-  filter(complete.cases(CESD, HADS))
+ggplot(results3, aes(x = value_1, value_2)) + geom_point() + facet_grid(measure_1 ~ measure_2) + geom_abline() + geom_smooth()
+ggplot(results3, aes(x = value_1, value_2)) + geom_point(aes(size = groupsize)) + facet_grid(measure_1 ~ measure_2) + geom_abline() 
 
-CESDxPHQ <- left_join(SUBSET_CESD, SUBSET_PHQ, by = c("Study", "Variable")) %>%
-  filter(complete.cases(CESD, PHQ))
+results3$m = (results3$value_1 + results3$value_2)/2
+results3$d = (results3$value_1 - results3$value_2)
 
-CESDxPROMIS <- left_join(SUBSET_CESD, SUBSET_PROMIS, by = c("Study", "Variable")) %>%
-  filter(complete.cases(CESD, PROMIS))
+ggplot(results3, aes(x = m, y = d)) + geom_point()+ facet_grid(measure_1 ~ measure_2)
 
-HADSxPHQ <- left_join(SUBSET_HADS, SUBSET_PHQ, by = c("Study", "Variable")) %>%
-  filter(complete.cases(HADS, PHQ))
+results4 = results3 %>% group_by(measure_1, measure_2) %>% summarise(mean1 = mean(d), wgt_mean = wtd.mean(d, w = groupsize, na.rm = T),
+                                                                     sd = sd(d), wtd_sd = sqrt(wtd.var(d, w = groupsize)),
+                                                                     lo = mean1-1.96*sd, hi = mean1+1.96*sd,
+                                                                     wtd_lo = wgt_mean-1.96*wtd_sd, wtd_hi = wgt_mean+1.96*wtd_sd)
 
-HADSxPROMIS <- left_join(SUBSET_HADS, SUBSET_PROMIS, by = c("Study", "Variable")) %>%
-  filter(complete.cases(HADS, PROMIS))
+ggplot(results3, aes(x = m, y = d)) + geom_point()+ facet_grid(measure_1 ~ measure_2) + 
+  geom_hline(data = results4, aes(yintercept = mean1)) + 
+  geom_hline(data = results4, aes(yintercept = lo), linetype = 2) +
+  geom_hline(data = results4, aes(yintercept = hi), linetype = 2) +
+  geom_text(data = results4, aes(x = 30, y = mean1, label = sprintf("%.1f", mean1)), vjust = -.2) +
+  geom_text(data = results4, aes(x = 30, y = lo, label = sprintf("%.1f", lo)), vjust = -.2) +
+  geom_text(data = results4, aes(x = 30, y = hi, label = sprintf("%.1f", hi)), vjust = -.2) +
+  coord_cartesian(xlim = c(20,80)) +
+  labs(title = "Unweighted")
 
-PHQxPROMIS <- left_join(SUBSET_PHQ, SUBSET_PROMIS, by = c("Study", "Variable")) %>%
-  filter(complete.cases(PHQ, PROMIS))
+ggplot(results3, aes(x = m, y = d)) + geom_point()+ facet_grid(measure_1 ~ measure_2) + 
+  geom_hline(data = results4, aes(yintercept = wgt_mean)) + 
+  geom_hline(data = results4, aes(yintercept = wtd_lo), linetype = 2) +
+  geom_hline(data = results4, aes(yintercept = wtd_hi), linetype = 2) +
+  labs(title = "Weighted")
+
 
 ```
+
+
 
 ## Scatterplots einzeln über alle Fragebogenkombinationen
 ```{r }

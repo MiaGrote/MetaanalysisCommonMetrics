@@ -9,7 +9,9 @@ date: "2024-01-10"
 
 ### Age
 ```{r }
-
+library(readxl)
+library(dplyr)
+library(tidyr)
 library(here)
 setwd(here())
 
@@ -323,7 +325,7 @@ file_path <- here("01_data", "Datenextraktion - komplett.xlsx")
 
 
 # Daten aus der Excel-Datei lesen
-result_df_mean <- read_excel(file_path, skip = 1)
+result_df_mean <- read_excel(file_path, skip = 0)
 
 
 
@@ -396,8 +398,7 @@ table1 <- rbind(data.frame(Variable = "Age, years (mean±SD)", category = "", am
 table1$Variable[c(4:9, 11:12, 14:15, 17:18, 20, 22, 23:25)] <- NA
 
 
-system("git config --global user.name 'MiaGrote'")
-system("git config --global user.email 'mia.grote@online.de'")
+
 ```
 
 
@@ -434,7 +435,7 @@ table1$amount[1] <- paste(rounded_mean, " (±", rounded_sd, ")", sep = "")
 ### Tabelle befüllen: gender 
 -> ergibt 54.05586
 ```{r }
-
+library(stringr)
 #Mittelwert numerisch umwandeln, unique Values nehmen
 result_df_gender$Value <- as.numeric(result_df_gender$Value)
 
