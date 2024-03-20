@@ -100,7 +100,6 @@ result_df_group <- result_df_group %>%
 # LookUp Tabellen hochladen und vorbereiten
 
 ```{r}
-
 LookUp_PHQ <- read_excel("../01_data/LookUp_PHQ.xlsx")
 LookUp_HADS <- read_excel("../01_data/LookUp_HADS.xlsx")
 LookUp_CESD <- read_excel("../01_data/LookUp_CESD.xlsx")
