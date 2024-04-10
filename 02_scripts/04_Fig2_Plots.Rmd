@@ -27,7 +27,7 @@ SUBSET_PROMIS <- read.xlsx(file_path) %>% unique()
 
 ```
 
-## Left join für Plots 
+## Felix' Code
 
 ```{r }
 library(Hmisc)
@@ -42,6 +42,7 @@ CESDxPROMIS <- inner_join(SUBSET_CESD, SUBSET_PROMIS, by = c("Study", "Variable"
 HADSxPHQ <- inner_join(SUBSET_HADS, SUBSET_PHQ, by = c("Study", "Variable")) %>%unique()
 HADSxPROMIS <- inner_join(SUBSET_HADS, SUBSET_PROMIS, by = c("Study", "Variable")) %>%unique()
 PHQxPROMIS <- inner_join(SUBSET_PHQ, SUBSET_PROMIS, by = c("Study", "Variable"))%>%unique()
+
 
 results = list(BDIxCESD, BDIxHADS, BDIxPHQ, 
 BDIxPROMIS, CESDxHADS, CESDxPHQ, CESDxPROMIS, HADSxPHQ, 
@@ -61,6 +62,7 @@ results[[x]]$groupsize = results[[x]][,"groupsize.x"]
 results[[x]][, c("Study", "Variable", "measure_1", "measure_2", "value_1", "value_2", "groupsize")]
 })
 
+str(results2)
 results3 = bind_rows(results2)
 library(ggplot2)
 results3$groupsize = as.numeric(results3$groupsize)
@@ -97,6 +99,57 @@ ggplot(results3, aes(x = m, y = d)) + geom_point()+ facet_grid(measure_1 ~ measu
 
 ```
 
+## linear mixed model estimates
+
+Wir möchten die Differenz i in Gruppe j aufteilen in Anteile, die auf Unterschiede der jeweiligen Fragebogenkombination j zurückgehen und Unterschiede die auch innerhalb der Fragebogenkombination noch zwischen einzelnen Studien i bestehen. 
+
+Es ist ein Mixed model weil wir con festen und von random effects (pro Studie unterscheiden sich die differenzen) ausgehen. 
+
+
+```{r }
+#install.packages("lme4")
+#install.packages("lmerTest")
+#install.packages("Matrix")
+
+library(lme4)
+library(lmerTest)
+library(Matrix)
+
+interceptonlymodel <- lmer(formula = d ~ 1 + (1|Study),
+                           data = results3)
+
+summary(interceptonlymodel)
+
+
+
+```
+
+### Hinzufügen eines Level-1 Prädiktors
+Wir wollen natürlich herausfinden, woran es liegen könnte, dass die Studien unterschiedliche Differenzen haben.
+
+Hypothese 1: Die Differenz hängt mit der Fragebogenkombination zusammen.
+
+
+```{r }
+results3$questionnaire_pair = paste(results3$measure_1, results3$measure_2)
+results3$questionnaire_pair = factor(paste(results3$measure_1, results3$measure_2))
+
+interceptonlymodel <- lmer(formula = d ~ 1 + questionnaire_pair + (1|Study), weights = groupsize, data = results3)
+summary(interceptonlymodel)
+lmerTest::ls_means(interceptonlymodel, which = "questionnaire_pair")
+
+
+```
+
+# ANOVA
+
+H0 wird abgelehnt -> es gibt signifikante Unterschiede zwischne den Differenzen der Fragebögen
+```{r }
+
+anova_result <- aov(d ~ questionnaire_pair, data = results3)
+summary(anova_result)
+
+```
 
 
 ## Scatterplots einzeln über alle Fragebogenkombinationen
@@ -227,7 +280,7 @@ BDIxPHQ_short <- BDIxPHQ %>%
 
 BDIxPROMIS_short <- BDIxPROMIS %>%
   mutate(`Wert 1` = `BDI.-.PROMIS.Skala`,
-         `Wert 2` = `PROMIS`,
+         `Wert 2` = `-.PROMIS.Skala`,
          `Fragebogenkombination` = "BDIxPROMIS")
 
 
@@ -245,7 +298,7 @@ CESDxPHQ_short  <- CESDxPHQ %>%
 
 CESDxPROMIS_short  <- CESDxPROMIS %>%
   mutate(`Wert 1` = `CESD.-.PROMIS.Skala`,
-         `Wert 2` = `PROMIS`,
+         `Wert 2` = `-.PROMIS.Skala`,
          `Fragebogenkombination` = "CESDxPROMIS")
 
 
@@ -257,13 +310,13 @@ HADSxPHQ_short  <- HADSxPHQ %>%
 
 HADSxPROMIS_short <- HADSxPROMIS %>%
   mutate(`Wert 1` = `HADS.-.PROMIS.Skala`,
-         `Wert 2` = `PROMIS`,
+         `Wert 2` = `-.PROMIS.Skala`,
          `Fragebogenkombination` = "HADSxPROMIS")
 
 
 PHQxPROMIS_short <- PHQxPROMIS %>%
   mutate(`Wert 1` = `PHQ.-.PROMIS.Skala`,
-         `Wert 2` = `PROMIS`,
+         `Wert 2` = `-.PROMIS.Skala`,
          `Fragebogenkombination` = "PHQxPROMIS")
 
 # datensätze verbinden, um sie als faceted plot aus einer Tabelle plotten zu können
@@ -368,7 +421,7 @@ BDIxPHQ_BA_plot <- blandr.draw(BDIxPHQ$'BDI.-.PROMIS.Skala', BDIxPHQ$'PHQ.-.PROM
   ylim(-15, 25)
 
 # BDIxPROMIS
-BDIxPROMIS_BA_plot <- blandr.draw(BDIxPROMIS$'BDI.-.PROMIS.Skala', BDIxPROMIS$'PROMIS') +
+BDIxPROMIS_BA_plot <- blandr.draw(BDIxPROMIS$'BDI.-.PROMIS.Skala', BDIxPROMIS$'-.PROMIS.Skala') +
   theme(text = element_text(size = 6)) +
   labs(title = "BDIxPROMIS") +
   xlim(40, 80) +
@@ -390,7 +443,7 @@ CESDxPHQ_BA_plot <- blandr.draw(CESDxPHQ$'CESD.-.PROMIS.Skala', CESDxPHQ$'PHQ.-.
   ylim(-15, 25)
 
 # CESDxPROMIS
-CESDxPROMIS_BA_plot <- blandr.draw(CESDxPROMIS$'CESD.-.PROMIS.Skala', CESDxPROMIS$'PROMIS') +
+CESDxPROMIS_BA_plot <- blandr.draw(CESDxPROMIS$'CESD.-.PROMIS.Skala', CESDxPROMIS$'-.PROMIS.Skala') +
   theme(text = element_text(size = 6)) +
   labs(title = "CESDxPROMIS") +
   xlim(40, 80) +
@@ -405,7 +458,7 @@ HADSxPHQ_BA_plot <- blandr.draw(HADSxPHQ$'HADS.-.PROMIS.Skala', HADSxPHQ$'PHQ.-.
   ylim(-15, 25)
 
 # PHQxPROMIS
-PHQxPROMIS_BA_plot <- blandr.draw(PHQxPROMIS$'PHQ.-.PROMIS.Skala', PHQxPROMIS$PROMIS,
+PHQxPROMIS_BA_plot <- blandr.draw(PHQxPROMIS$'PHQ.-.PROMIS.Skala', PHQxPROMIS$'-.PROMIS.Skala',
                                   x.plot.mode = 4) +
   theme(text = element_text(size = 6)) +
   labs(title = "PHQxPROMIS") +

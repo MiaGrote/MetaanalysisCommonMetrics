@@ -104,6 +104,7 @@ LookUp_PHQ <- read_excel("../01_data/LookUp_PHQ.xlsx")
 LookUp_HADS <- read_excel("../01_data/LookUp_HADS.xlsx")
 LookUp_CESD <- read_excel("../01_data/LookUp_CESD.xlsx")
 LookUp_BDI <- read_excel("../01_data/LookUp_BDI.xlsx")
+LookUp_PROMIS <- read_excel("../01_data/LookUp_PROMIS.xlsx")
 
 ## umbenennen zum Datensätze mergen
 
@@ -111,6 +112,7 @@ LookUp_PHQ <- LookUp_PHQ %>% rename(Value = `PHQ Raw Score`)
 LookUp_BDI <- LookUp_BDI %>% rename(Value = `BDI Raw Score`)
 LookUp_HADS <- LookUp_HADS %>% rename(Value = `HADS Raw Score`)
 LookUp_CESD <- LookUp_CESD %>% rename(Value = `CESD Raw Score`)
+LookUp_PROMIS <- LookUp_PROMIS %>% rename(Value = `PROMIS Raw Score`)
 
 ```
 
@@ -437,40 +439,44 @@ write.xlsx(SUBSET_CESD, file_path, rowNames = FALSE)
 
 ```
 
-## Für PROMIS
+## Für PROMIS (neu)
 
 ```{r}
 
 # Datensatz und LookUp Tabelle joinen
-subset_PROMIS <- result_df[grepl("PROMIS", result_df$Variable), ]
+subset_PROMIS <-  result_df[grepl("PROMIS", result_df$Variable), ]
+
+subset_PROMIS <- full_join(subset_PROMIS, LookUp_PROMIS, by = "Value")
+
+subset_PROMIS <- arrange(subset_PROMIS, Value)
 
 
-# Interpolation der Spalte PROMIS 
-subset_PROMIS$'PROMIS Score'<- approx(
-  x = subset_PROMIS$Value,
-  y = subset_PROMIS$'PROMIS T-score',
-  xout = subset_PROMIS$'Value'
-)$y
 
-# VALUE in PROMIS umwandeln
+x <- c(8:40)
+y <- c(38.2, 44.7, 47.5, 49.4, 50.9, 52.1, 53.2, 54.1, 55.1, 55.9, 56.8, 57.7,
+58.5,
+59.4,
+60.3,
+61.2,
+62.1,
+63.0,
+63.9,
+64.9,
+65.8,
+66.8,
+67.7,
+68.7,
+69.7,
+70.7,
+71.7,
+72.8,
+73.9,
+75.0,
+76.4,
+78.2,
+81.3)
 
-subset_PROMIS <- subset_PROMIS %>%
-  mutate(
-    PROMIS = Value,
-    Variable = gsub("PROMIS - ", "", Variable)
-  ) 
-
-
-subset_PROMIS <- subset_PROMIS %>%
-  mutate(
-    Groupinfo = ifelse(grepl("Group", Variable), gsub("^(.*?)Group.*", "\\1", Variable), NA),
-    Variable = ifelse(grepl("Group", Variable), gsub("^.*Group", "Group", Variable), Variable)
-  )
-
-subset_PROMIS <- subset_PROMIS %>%
-  mutate(
-    Variable = str_replace_all(Variable, c("Group " = "", " - mean sum scores " = ""))
-  )
+approx(x, y, xout = 14.7, method = "linear")
 
 
 # GROUP SIZE dazu bekommen 
@@ -478,12 +484,11 @@ library(stringr)
 
 # Subset erstellen, das nur Zeilen mit "PROMIS" enthält
 subset_PROMIS_group <- result_df_group[grepl("PROMIS", result_df_group$Variable), ]
-
 #NAs löschen
 subset_PROMIS_group <- subset_PROMIS_group %>%
   filter(!is.na(Variable))
 
-# Muster "Group size PROMIS" aus der Column "Variable" löschen
+# Muster "Group size CESD" aus der Column "Variable" löschen
 subset_PROMIS_group <- subset_PROMIS_group %>%
   mutate(Variable = str_replace(Variable, "Group size PROMIS", ""))
 
@@ -506,14 +511,50 @@ subset_PROMIS_group$Variable <- gsub("^\\s*([0-9]+)\\s*", "\\1", subset_PROMIS_g
 
 
 # LEFT join um Gruppengröße mit dabei zu haben
+subset_PROMIS$Variable <- sub("(\\d)\\s", "\\1", subset_PROMIS$Variable)
+
+
+
 SUBSET_PROMIS <- left_join(subset_PROMIS, subset_PROMIS_group, by = c("Study", "Variable"))
+
 SUBSET_PROMIS <- SUBSET_PROMIS %>%
-  select(-`PROMIS Score`, -Value)
+  mutate(`PROMIS T-Score` = ifelse(row_number() == 8, 53.8, `PROMIS T-Score`))
+
+SUBSET_PROMIS <- SUBSET_PROMIS %>%
+  mutate(`groupsize` = ifelse(row_number() == 8, 194, `groupsize`))
+
+SUBSET_PROMIS <- SUBSET_PROMIS %>%
+  mutate(`Variable` = ifelse(row_number() == 8, "1#1 timepoint", `Variable`))
+
+SUBSET_PROMIS <- SUBSET_PROMIS %>%
+  rename(`-.PROMIS.Skala` = `PROMIS T-Score`)
+
+
+SUBSET_PROMIS$`-.PROMIS.Skala`[35:43] <- SUBSET_PROMIS$Value[35:43]
+
+
+SUBSET_PROMIS <- subset(SUBSET_PROMIS, !is.na(Study))
+
+groupsize_values <- c(64, 67, 148, 459, 512, 459, 231, 158, 123)
+SUBSET_PROMIS$groupsize[2:10] <- groupsize_values
+
+SUBSET_PROMIS$Variable[1:10] <- "1#1 timepoint"
+
+SUBSET_PROMIS$Variable[9] <- "1#2 timepoint"
+
+SUBSET_PROMIS$Value <- as.numeric(SUBSET_PROMIS$Value)
+SUBSET_PROMIS$`-.PROMIS.Skala` <- as.numeric(SUBSET_PROMIS$`-.PROMIS.Skala`)
+
+# Convert "groupsize" column to numeric
+SUBSET_PROMIS$groupsize <- as.numeric(SUBSET_PROMIS$groupsize)
 
 file_path <- "../01_data/SUBSET_PROMIS.xlsx"
 write.xlsx(SUBSET_PROMIS, file_path, rowNames = FALSE)
 
+
 ```
+
+
 
 
 
