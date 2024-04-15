@@ -27,7 +27,9 @@ SUBSET_PROMIS <- read.xlsx(file_path) %>% unique()
 
 ```
 
-## Felix' Code
+# Felix' Code
+
+## Scatter und Bland-Altmann Plots
 
 ```{r }
 library(Hmisc)
@@ -96,14 +98,28 @@ ggplot(results3, aes(x = m, y = d)) + geom_point()+ facet_grid(measure_1 ~ measu
   geom_hline(data = results4, aes(yintercept = wtd_hi), linetype = 2) +
   labs(title = "Weighted")
 
+```
 
+## mean of (absolute) d 
+```{r }
+
+d_absolute <- abs(results3$d)
+d_absolute_mean <- mean(d_absolute)
+summary(d_absolute)
+sd(d_absolute)
+
+#mean of d
+d <- results3$d
+d_mean <- mean(d)
+summary(d)
+sd(d)
 ```
 
 ## linear mixed model estimates
 
 Wir möchten die Differenz i in Gruppe j aufteilen in Anteile, die auf Unterschiede der jeweiligen Fragebogenkombination j zurückgehen und Unterschiede die auch innerhalb der Fragebogenkombination noch zwischen einzelnen Studien i bestehen. 
 
-Es ist ein Mixed model weil wir con festen und von random effects (pro Studie unterscheiden sich die differenzen) ausgehen. 
+Es ist ein Mixed model weil wir von festen und von random effects (pro Studie unterscheiden sich die Differenzen) ausgehen. 
 
 
 ```{r }
@@ -115,29 +131,38 @@ library(lme4)
 library(lmerTest)
 library(Matrix)
 
-interceptonlymodel <- lmer(formula = d ~ 1 + (1|Study),
+interceptonlymodel <- lmer(formula = d ~ 1 + (1|Study), weights=groupsize,
                            data = results3)
 
+## hier weiter mit https://shiny.psy.lmu.de/tutorials/lineare-gemischte-modelle-linear-mixed-models---lmm.html#intro und notion 
 summary(interceptonlymodel)
 
-
+#install.packages("sjPlot")
+library(sjPlot)
+plot_model(model = interceptonlymodel, type = 'pred', terms = 'Study')
 
 ```
 
 ### Hinzufügen eines Level-1 Prädiktors
-Wir wollen natürlich herausfinden, woran es liegen könnte, dass die Studien unterschiedliche Differenzen haben.
+Wir wollen herausfinden, woran es liegen könnte, dass die Studien unterschiedliche Differenzen haben.
 
 Hypothese 1: Die Differenz hängt mit der Fragebogenkombination zusammen.
 
 
 ```{r }
+# install.packages("knitr")
+# install.packages("kableExtra")
+
+library(knitr)
+library(kableExtra)
+
+
 results3$questionnaire_pair = paste(results3$measure_1, results3$measure_2)
 results3$questionnaire_pair = factor(paste(results3$measure_1, results3$measure_2))
 
 interceptonlymodel <- lmer(formula = d ~ 1 + questionnaire_pair + (1|Study), weights = groupsize, data = results3)
 summary(interceptonlymodel)
 lmerTest::ls_means(interceptonlymodel, which = "questionnaire_pair")
-
 
 ```
 
@@ -150,9 +175,79 @@ anova_result <- aov(d ~ questionnaire_pair, data = results3)
 summary(anova_result)
 
 ```
+# Forest plot 
+
+```{r }
+
+## load up the packages we will need: 
+library(tidyverse)
+library(gt)
+library(patchwork)
+
+library(ggplot2)
+
+# Data
+data <- data.frame(
+  Comparison = c("BDI x CESD (7 studies)", "BDI x HADS (9 studies)", "BDI x PHQ (20 studies)", "BDI x PROMIS (1 study)",
+                 "CESD x HADS (14 studies)", "CESD x PHQ (9 studies)", "CESD x PROMIS (1 study)",
+                 "HADS x PHQ (19 studies)", "HADS x PROMIS (1 study)", "PHQ x PROMIS (6 studies)"),
+  Estimate = c(-2.97582, 1.52532, -0.78826, 1.79057, 2.85519,
+               1.46963, 5.45416, -2.47907, -2.65198, 5.30093),
+  Std.Error = c(1.31949, 0.97459, 0.68534, 2.98016, 0.82313,
+                0.89610, 1.29958, 0.70739, 3.06720, 1.03198),
+  lower = c(-5.59149, -0.40445, -2.15921, -4.21102, 1.20904,
+            -0.32298, 2.89030, -3.89421, -8.80756, 3.25347),
+  upper = c(-0.36015, 3.45508, 0.58269, 7.79216, 4.50134,
+            3.26224, 8.01801, -1.06393, 3.50360, 7.34839),
+  p.value = c(0.0261462, 0.1202153, 0.2546478, 0.5509542,
+               0.0009684, 0.1062524, 4.193e-05, 0.0008742, 0.3912369, 1.388e-06)
+)
+
+
+# Order the data by Estimate
+data <- data[order(data$Estimate), ]
+
+# Forest plot
+plot <- ggplot(data, aes(x = Estimate, y = Comparison)) +
+  geom_point(size = 3) +
+  geom_errorbarh(aes(xmin = lower, xmax = upper), height = 0.2) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey") +
+  scale_x_continuous(limits = c(-10, 10)) +
+  theme_minimal() +
+  labs(
+    title = "Forest Plot",
+    subtitle = "Comparison of Questionnaires",
+    x = "Estimate",
+    y = "Comparison",
+    caption = "Error bars represent 95% confidence intervals"
+  ) +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    plot.subtitle = element_text(size = 14),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10)
+  )
+
+
+# Define the file path
+file_path <- "../04_results/forest_plot.png"
+
+# Save the plot
+ggsave(file_path, plot, width = 10, height = 8)
+
+
+plot
+```
+
+# save table 2
+```{r }
+
+
+```
 
 
 ## Scatterplots einzeln über alle Fragebogenkombinationen
+
 ```{r }
 library(ggplot2)
 #install.packages("hrbrthemes")
@@ -443,11 +538,11 @@ CESDxPHQ_BA_plot <- blandr.draw(CESDxPHQ$'CESD.-.PROMIS.Skala', CESDxPHQ$'PHQ.-.
   ylim(-15, 25)
 
 # CESDxPROMIS
-CESDxPROMIS_BA_plot <- blandr.draw(CESDxPROMIS$'CESD.-.PROMIS.Skala', CESDxPROMIS$'-.PROMIS.Skala') +
-  theme(text = element_text(size = 6)) +
-  labs(title = "CESDxPROMIS") +
-  xlim(40, 80) +
-  ylim(-15, 25)
+#CESDxPROMIS_BA_plot <- blandr.draw(CESDxPROMIS$'CESD.-.PROMIS.Skala', CESDxPROMIS$'-.PROMIS.Skala') +
+#  theme(text = element_text(size = 6)) +
+#  labs(title = "CESDxPROMIS") +
+#  xlim(40, 80) +
+#  ylim(-15, 25)
 
 
 # HADSxPHQ  
@@ -646,14 +741,14 @@ BDIxPHQ_BA_plot_weighted <- ggplot(BDIxPHQ, aes(x = avg, y = diff)) +
 
 # Calculate weighted means
 weigh.mean.BDI <- weighted.mean(BDIxPROMIS$'BDI.-.PROMIS.Skala', BDIxPROMIS$groupsize.y)
-weigh.mean.PROMIS <- weighted.mean(BDIxPROMIS$'PROMIS', BDIxPROMIS$groupsize.y)
+weigh.mean.PROMIS <- weighted.mean(BDIxPROMIS$'-.PROMIS', BDIxPROMIS$groupsize.y)
 weigh.diff <- weigh.mean.BDI - weigh.mean.PROMIS
 
 # Create a new column for average measurement
-BDIxPROMIS$avg <- rowMeans(BDIxPROMIS[c('BDI.-.PROMIS.Skala', 'PROMIS')], na.rm = TRUE)
+BDIxPROMIS$avg <- rowMeans(BDIxPROMIS[c('BDI.-.PROMIS.Skala', '-.PROMIS.Skala')], na.rm = TRUE)
 
 # Create a new column for differences
-BDIxPROMIS$diff <- BDIxPROMIS$'BDI.-.PROMIS.Skala' - BDIxPROMIS$'PROMIS'
+BDIxPROMIS$diff <- BDIxPROMIS$'BDI.-.PROMIS.Skala' - BDIxPROMIS$'-.PROMIS'
 
 # Find the average difference
 mean_diff <- mean(BDIxPROMIS$diff)
@@ -794,14 +889,14 @@ CESDxPHQ_BA_plot_weighted <- ggplot(CESDxPHQ, aes(x = avg, y = diff)) +
 
 # Calculate weighted means
 weigh.mean.PHQ <- weighted.mean(PHQxPROMIS$'PHQ.-.PROMIS.Skala', PHQxPROMIS$groupsize.y)
-weigh.mean.PROMIS <- weighted.mean(PHQxPROMIS$'PROMIS', PHQxPROMIS$groupsize.y)
+weigh.mean.PROMIS <- weighted.mean(PHQxPROMIS$'-.PROMIS.Skala', PHQxPROMIS$groupsize.y)
 weigh.diff <- weigh.mean.PHQ - weigh.mean.PROMIS
 
 # Create a new column for average measurement
-PHQxPROMIS$avg <- rowMeans(PHQxPROMIS[c('PHQ.-.PROMIS.Skala', 'PROMIS')], na.rm = TRUE)
+PHQxPROMIS$avg <- rowMeans(PHQxPROMIS[c('PHQ.-.PROMIS.Skala', '-.PROMIS.Skala')], na.rm = TRUE)
 
 # Create a new column for differences
-PHQxPROMIS$diff <- PHQxPROMIS$'PHQ.-.PROMIS.Skala' - PHQxPROMIS$'PROMIS'
+PHQxPROMIS$diff <- PHQxPROMIS$'PHQ.-.PROMIS.Skala' - PHQxPROMIS$'-.PROMIS.Skala'
 
 # Find the average difference
 mean_diff <- mean(PHQxPROMIS$diff)
