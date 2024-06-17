@@ -102,6 +102,54 @@ ggplot(results3, aes(x = m, y = d)) + geom_point()+ facet_grid(measure_1 ~ measu
 
 ```{r, echo=FALSE}
 
+<<<<<<< HEAD
+=======
+library(lme4)
+library(emmeans)
+library(Matrix)
+
+interceptonlymodel <- lmer(formula = d ~ 1 + (1|Study), weights = groupsize, data = results3)
+
+summary(interceptonlymodel)
+emmeans(interceptonlymodel, ~1)
+
+
+ 
+ 
+```
+
+### Hinzufügen eines Level-1 Prädiktors
+Wir wollen natürlich herausfinden, woran es liegen könnte, dass die Studien unterschiedliche Differenzen haben.
+
+Hypothese 1: Die Differenz hängt mit der Fragebogenkombination zusammen.
+
+
+```{r }
+results3$questionnaire_pair = paste(results3$measure_1, results3$measure_2)
+results3$questionnaire_pair = factor(paste(results3$measure_1, results3$measure_2))
+
+questionnairemodel <- lmer(formula = d ~ -1 + questionnaire_pair + (1|Study), weights = groupsize, data = results3)
+summary(questionnairemodel)
+emmeans(questionnairemodel, specs = "questionnaire_pair")
+```
+
+# ANOVA
+
+H0 wird abgelehnt -> es gibt signifikante Unterschiede zwischne den Differenzen der Fragebögen
+```{r }
+
+anova_result <- aov(d ~ questionnaire_pair, data = results3)
+summary(anova_result)
+
+anova(questionnairemodel, interceptonlymodel)
+
+
+```
+
+
+## Scatterplots einzeln über alle Fragebogenkombinationen
+```{r }
+>>>>>>> a699a81a6cc393886f3d0c8afa5fbbbc800e485a
 library(ggplot2)
 
 max_groupsize_row <- which.max(results3$groupsize)
