@@ -31,6 +31,30 @@ prisma(2626, 0, 2626, 1911, 1827, 84, 3, 81, 81)
 
 
 
+
+# Install and load the DiagrammeR package
+if (!require(DiagrammeR)) install.packages("DiagrammeR")
+library(DiagrammeR)
+
+# Create the flowchart
+flowchart <- grViz("
+digraph flowchart {
+  node [shape = box]
+  start [label = 'Start Search']
+  step1 [label = 'Define Search Terms for Each Scale']
+  step2 [label = 'Combine Terms with OR']
+  step3 [label = 'Combine Results with AND']
+  step4 [label = 'Limit Results to English or German']
+  step5 [label = 'Perform Combinations of Scales']
+  end [label = 'End Search']
+
+  start -> step1 -> step2 -> step3 -> step4 -> step5 -> end
+}
+")
+
+# Render the flowchart
+flowchart
+
 ```
 
 

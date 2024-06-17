@@ -24,7 +24,7 @@ library(janitor)
 
 ## Eine Tabelle im long Format erstellen, die alle Kombinationen an Fragebögen mit deren ID und Werten festhält
 
-```{r }
+```{r, echo=FALSE}
 
 file_path <- ("../01_data/Datenextraktion - komplett.xlsx")
 
@@ -63,7 +63,7 @@ result_df$Value <- as.numeric(result_df$Value)
 
 ## Eine Tabelle im long Format erstellen, die alle Kombinationen an Fragebögen mit deren ID und Werten festhält FÜR GROUP size
 
-```{r }
+```{r, echo=FALSE}
 
 # Funktion zur Bereinigung und Umwandlung der Daten
 clean_and_transform_data <- function(sheet_name) {
@@ -98,8 +98,7 @@ result_df_group <- result_df_group %>%
 
 
 # LookUp Tabellen hochladen und vorbereiten
-
-```{r}
+```{r, echo=FALSE}
 LookUp_PHQ <- read_excel("../01_data/LookUp_PHQ.xlsx")
 LookUp_HADS <- read_excel("../01_data/LookUp_HADS.xlsx")
 LookUp_CESD <- read_excel("../01_data/LookUp_CESD.xlsx")
@@ -120,7 +119,7 @@ LookUp_PROMIS <- LookUp_PROMIS %>% rename(Value = `PROMIS Raw Score`)
 # Werte auf PROMIS Skala übertragen, Gruppenbeschreibung trennen und in neue Datensätze speichern z.B. "SUBSET_BDI" etc.
 ## Für BDI
 
-```{r}
+```{r, echo=FALSE}
 
 # Datensatz und LookUp Tabelle joinen
 subset_BDI <- result_df[grepl("BDI", result_df$Variable), ]
@@ -199,7 +198,7 @@ write.xlsx(SUBSET_BDI, file_path, rowNames = FALSE)
 ```
 
 ## Für PHQ
-```{r}
+```{r, echo=FALSE}
 # Datensatz und LookUp Tabelle joinen
 subset_PHQ <- result_df[grepl("PHQ", result_df$Variable), ]
 subset_PHQ <- full_join(subset_PHQ, LookUp_PHQ, by = "Value")
@@ -277,8 +276,7 @@ write.xlsx(SUBSET_PHQ, file_path, rowNames = FALSE)
 ```
 
 ## Für HADS
-
-```{r}
+```{r, echo=FALSE}
 
 # Datensatz und LookUp Tabelle joinen
 subset_HADS <- result_df[grepl("HADS", result_df$Variable), ]
@@ -359,8 +357,7 @@ write.xlsx(SUBSET_HADS, file_path, rowNames = FALSE)
 
 ## Für CESD
 
-```{r}
-
+```{r, echo=FALSE}
 # Datensatz und LookUp Tabelle joinen
 subset_CESD <- result_df[grepl("CESD", result_df$Variable), ]
 subset_CESD <- full_join(subset_CESD, LookUp_CESD, by = "Value")
@@ -441,8 +438,7 @@ write.xlsx(SUBSET_CESD, file_path, rowNames = FALSE)
 
 ## Für PROMIS (neu)
 
-```{r}
-
+```{r, echo=FALSE}
 # Datensatz und LookUp Tabelle joinen
 subset_PROMIS <-  result_df[grepl("PROMIS", result_df$Variable), ]
 

@@ -1,0 +1,1141 @@
+---
+title: "backup Analyse"
+output: html_document
+date: "2024-01-10"
+---
+# Scatterplots
+## load data
+```{r, echo=FALSE}
+library(readxl)
+library(dplyr)
+library(openxlsx)
+
+file_path <- "../01_data/SUBSET_BDI.xlsx"
+SUBSET_BDI <- read.xlsx(file_path)  %>% unique()
+
+file_path <- "../01_data/SUBSET_CESD.xlsx"
+SUBSET_CESD <- read.xlsx(file_path) %>% unique()
+
+file_path <- "../01_data/SUBSET_HADS.xlsx"
+SUBSET_HADS <- read.xlsx(file_path) %>% unique()
+
+file_path <- "../01_data/SUBSET_PHQ.xlsx"
+SUBSET_PHQ <- read.xlsx(file_path) %>% unique()
+
+file_path <- "../01_data/SUBSET_PROMIS.xlsx"
+SUBSET_PROMIS <- read.xlsx(file_path) %>% unique()
+
+```
+
+# Felix' Code
+
+## Scatter und Bland-Altmann Plots
+
+```{r, echo=FALSE}
+library(Hmisc)
+
+BDIxCESD = inner_join(SUBSET_BDI, SUBSET_CESD, by = c("Study", "Variable")) %>% unique()
+BDIxHADS <- inner_join(SUBSET_BDI, SUBSET_HADS, by = c("Study", "Variable")) %>%unique()
+BDIxPHQ <- inner_join(SUBSET_BDI, SUBSET_PHQ, by = c("Study", "Variable")) %>%unique()
+BDIxPROMIS <- inner_join(SUBSET_BDI, SUBSET_PROMIS, by = c("Study", "Variable")) %>%unique()
+CESDxHADS <- inner_join(SUBSET_CESD, SUBSET_HADS, by = c("Study", "Variable")) %>%unique()
+CESDxPHQ <- inner_join(SUBSET_CESD, SUBSET_PHQ, by = c("Study", "Variable")) %>%unique()
+CESDxPROMIS <- inner_join(SUBSET_CESD, SUBSET_PROMIS, by = c("Study", "Variable")) %>%unique()
+HADSxPHQ <- inner_join(SUBSET_HADS, SUBSET_PHQ, by = c("Study", "Variable")) %>%unique()
+HADSxPROMIS <- inner_join(SUBSET_HADS, SUBSET_PROMIS, by = c("Study", "Variable")) %>%unique()
+PHQxPROMIS <- inner_join(SUBSET_PHQ, SUBSET_PROMIS, by = c("Study", "Variable"))%>%unique()
+
+
+results = list(BDIxCESD, BDIxHADS, BDIxPHQ, 
+BDIxPROMIS, CESDxHADS, CESDxPHQ, CESDxPROMIS, HADSxPHQ, 
+HADSxPROMIS, PHQxPROMIS)
+names(results) =  c("BDIxCESD", "BDIxHADS", "BDIxPHQ", 
+"BDIxPROMIS", "CESDxHADS", "CESDxPHQ", "CESDxPROMIS", "HADSxPHQ", 
+"HADSxPROMIS", "PHQxPROMIS")
+
+results$BDIxPROMIS$PROMIS_PROMIS.Skala = results$BDIxPROMIS$PROMIS
+
+results2 = lapply(names(results), function(x){
+results[[x]]$measure_1 = strsplit(x, "x")[[1]][1]
+results[[x]]$measure_2 = strsplit(x, "x")[[1]][2]
+results[[x]]$value_1 = results[[x]][, grep("PROMIS", names(results[[x]]))[1]]
+results[[x]]$value_2 =  results[[x]][, grep("PROMIS", names(results[[x]]))[2]]
+results[[x]]$groupsize = results[[x]][,"groupsize.x"]
+results[[x]][, c("Study", "Variable", "measure_1", "measure_2", "value_1", "value_2", "groupsize")]
+})
+
+str(results2)
+results3 = bind_rows(results2)
+library(ggplot2)
+results3$groupsize = as.numeric(results3$groupsize)
+
+ggplot(results3, aes(x = value_1, value_2)) + geom_point() + facet_grid(measure_1 ~ measure_2) + geom_abline() + geom_smooth()
+ggplot(results3, aes(x = value_1, value_2)) + geom_point(aes(size = groupsize)) + facet_grid(measure_1 ~ measure_2) + geom_abline() 
+
+results3$m = (results3$value_1 + results3$value_2)/2
+results3$d = (results3$value_1 - results3$value_2)
+
+ggplot(results3, aes(x = m, y = d)) + geom_point()+ facet_grid(measure_1 ~ measure_2)
+
+results4 = results3 %>% group_by(measure_1, measure_2) %>% summarise(mean1 = mean(d), wgt_mean = wtd.mean(d, w = groupsize, na.rm = T),
+                                                                     sd = sd(d), wtd_sd = sqrt(wtd.var(d, w = groupsize)),
+                                                                     lo = mean1-1.96*sd, hi = mean1+1.96*sd,
+                                                                     wtd_lo = wgt_mean-1.96*wtd_sd, wtd_hi = wgt_mean+1.96*wtd_sd)
+
+ggplot(results3, aes(x = m, y = d)) + geom_point()+ facet_grid(measure_1 ~ measure_2) + 
+  geom_hline(data = results4, aes(yintercept = mean1)) + 
+  geom_hline(data = results4, aes(yintercept = lo), linetype = 2) +
+  geom_hline(data = results4, aes(yintercept = hi), linetype = 2) +
+  geom_text(data = results4, aes(x = 30, y = mean1, label = sprintf("%.1f", mean1)), vjust = -.2) +
+  geom_text(data = results4, aes(x = 30, y = lo, label = sprintf("%.1f", lo)), vjust = -.2) +
+  geom_text(data = results4, aes(x = 30, y = hi, label = sprintf("%.1f", hi)), vjust = -.2) +
+  coord_cartesian(xlim = c(20,80)) +
+  labs(title = "Unweighted")
+
+ggplot(results3, aes(x = m, y = d)) + geom_point()+ facet_grid(measure_1 ~ measure_2) + 
+  geom_hline(data = results4, aes(yintercept = wgt_mean)) + 
+  geom_hline(data = results4, aes(yintercept = wtd_lo), linetype = 2) +
+  geom_hline(data = results4, aes(yintercept = wtd_hi), linetype = 2) +
+  labs(title = "Weighted")
+
+
+```
+
+```{r, echo=FALSE}
+
+library(ggplot2)
+
+max_groupsize_row <- which.max(results3$groupsize)
+
+# Remove this row to avoid distortion in the plot
+results3_adjusted <- results3[-max_groupsize_row, ]
+
+# Generate the plot without the outlier
+plot <- ggplot(results3_adjusted, aes(x = groupsize, y = d, group = interaction(d > 0.5), color = d > 0.5)) +
+  geom_line() +  # Connect points with lines
+  geom_point() +  # Add points to visualize individual observations
+  scale_color_manual(values = c("red", "blue"),  # Define custom colors for different categories of 'd'
+                     labels = c("d ≤ 0.5", "d > 0.5"),
+                     name = "Difference Category") +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "black") +  # Dashed line at d = 0.5
+  labs(
+    x = "Group Size",
+    y = "Difference (d)",
+    title = "Plot of Difference vs. Group Size",
+    subtitle = "Two lines showing trends converging towards d = 0.5",
+    caption = "Outlier with very high group size removed for better visualization."
+  ) +
+  theme_minimal()  # Use a minimalistic theme for a clean plot
+
+# Display the plot
+print(plot)
+
+ggsave("plot_of_difference_vs_group_size.png", plot, width = 10, height = 8, dpi = 300)
+
+
+
+
+
+
+# Load the ggplot2 library for creating visuals
+library(ggplot2)
+
+# Assuming 'results' contains the columns 'd' for differences and 'groupsize' for the size of each group.
+# This visualization explores how the difference 'd' varies with 'groupsize', including smooth trend lines.
+
+# Generate the plot
+plot <- ggplot(results3, aes(x = groupsize, y = d, color = d > 0.5)) +
+  geom_point() +  # Add points to visualize individual observations
+  geom_smooth(aes(group = interaction(d > 0.5)),  # Add smooth lines to show trends
+              method = "loess",  # 'loess' is good for smaller datasets, use 'gam' for larger datasets
+              se = TRUE,  # Display confidence interval around the smooth line
+              color = "black") +  # Specify color of the smooth line if desired
+  scale_color_manual(values = c("red", "blue"),  # Define custom colors for different categories of 'd'
+                     labels = c("d ≤ 0.5", "d > 0.5"),
+                     name = "Difference Category") +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey") +  # Dashed line at d = 0.5
+  labs(
+    x = "Group Size",
+    y = "Difference (d)",
+    title = "Smoothed Plot of Difference vs. Group Size",
+    subtitle = "Smooth trends showing convergence towards d = 0.5",
+    caption = "Data points are colored based on the category of 'd'. Smooth lines include a confidence interval."
+  ) +
+  theme_minimal()  # Use a minimalistic theme for a clean plot
+
+# Display the plot
+print(plot)
+
+
+```
+
+## mean of (absolute) d 
+```{r, echo=FALSE}
+
+d_absolute <- abs(results3$d)
+d_absolute_mean <- mean(d_absolute)
+summary(d_absolute)
+sd(d_absolute)
+
+#mean of d
+d <- results3$d
+d_mean <- mean(d)
+summary(d)
+sd(d)
+```
+
+## linear mixed model estimates
+
+Wir möchten die Differenz i in Gruppe j aufteilen in Anteile, die auf Unterschiede der jeweiligen Fragebogenkombination j zurückgehen und Unterschiede die auch innerhalb der Fragebogenkombination noch zwischen einzelnen Studien i bestehen. 
+
+Es ist ein Mixed model weil wir von festen und von random effects (pro Studie unterscheiden sich die Differenzen) ausgehen. 
+
+
+```{r, echo=FALSE}
+#install.packages("lme4")
+#install.packages("lmerTest")
+#install.packages("Matrix")
+
+library(lme4)
+library(sjPlot)
+
+# Erstelle das Intercept-Only-Modell
+interceptonlymodel <- lmer(formula = d ~ 1 + (1|Study),
+                           weights = groupsize,
+                           data = results3)
+
+# Zeige die Zusammenfassung des Modells an
+summary(interceptonlymodel)
+
+# Plotte das Modell
+plot_model(model = interceptonlymodel, type = 'pred', terms = 'Study')
+
+
+```
+
+### Hinzufügen eines Level-1 Prädiktors
+Wir wollen herausfinden, woran es liegen könnte, dass die Studien unterschiedliche Differenzen haben.
+
+Hypothese 1: Die Differenz hängt mit der Fragebogenkombination zusammen.
+
+
+```{r, echo=FALSE}
+
+# install.packages("knitr")
+# install.packages("kableExtra")
+
+library(knitr)
+library(kableExtra)
+
+
+results3$questionnaire_pair = paste(results3$measure_1, results3$measure_2)
+results3$questionnaire_pair = factor(paste(results3$measure_1, results3$measure_2))
+
+interceptonlymodel <- lmer(formula = d ~ 1 + questionnaire_pair + (1|Study), weights = groupsize, data = results3)
+summary(interceptonlymodel)
+lmerTest::ls_means(interceptonlymodel, which = "questionnaire_pair")
+
+```
+
+# ANOVA
+
+H0 wird abgelehnt -> es gibt signifikante Unterschiede zwischne den Differenzen der Fragebögen
+```{r, echo=FALSE}
+
+anova_result <- aov(d ~ questionnaire_pair, data = results3)
+summary(anova_result)
+
+```
+# Forest plot 
+
+```{r, echo=FALSE}
+
+## load up the packages we will need: 
+library(tidyverse)
+library(gt)
+library(patchwork)
+
+library(ggplot2)
+
+# Data
+data <- data.frame(
+  Comparison = c("BDI x CESD (7 studies)", "BDI x HADS (9 studies)", "BDI x PHQ (20 studies)", "BDI x PROMIS (1 study)",
+                 "CESD x HADS (14 studies)", "CESD x PHQ (9 studies)", "CESD x PROMIS (1 study)",
+                 "HADS x PHQ (19 studies)", "HADS x PROMIS (1 study)", "PHQ x PROMIS (6 studies)"),
+  Estimate = c(-2.97582, 1.52532, -0.78826, 1.79057, 2.85519,
+               1.46963, 5.45416, -2.47907, -2.65198, 5.30093),
+  Std.Error = c(1.31949, 0.97459, 0.68534, 2.98016, 0.82313,
+                0.89610, 1.29958, 0.70739, 3.06720, 1.03198),
+  lower = c(-5.59149, -0.40445, -2.15921, -4.21102, 1.20904,
+            -0.32298, 2.89030, -3.89421, -8.80756, 3.25347),
+  upper = c(-0.36015, 3.45508, 0.58269, 7.79216, 4.50134,
+            3.26224, 8.01801, -1.06393, 3.50360, 7.34839),
+  p.value = c(0.0261462, 0.1202153, 0.2546478, 0.5509542,
+               0.0009684, 0.1062524, 4.193e-05, 0.0008742, 0.3912369, 1.388e-06)
+)
+
+
+# Order the data by Estimate
+data <- data[order(data$Estimate), ]
+
+# Forest plot
+plot <- ggplot(data, aes(x = Estimate, y = Comparison)) +
+  geom_point(size = 3) +
+  geom_errorbarh(aes(xmin = lower, xmax = upper), height = 0.2) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey") +
+  scale_x_continuous(limits = c(-10, 10)) +
+  theme_minimal() +
+  labs(
+    title = "Forest Plot",
+    subtitle = "Comparison of Questionnaires",
+    x = "Estimate",
+    y = "Comparison",
+    caption = "Error bars represent 95% confidence intervals"
+  ) +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    plot.subtitle = element_text(size = 14),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10)
+  )
+
+
+# Define the file path
+file_path <- "../04_results/forest_plot.png"
+
+# Save the plot
+ggsave(file_path, plot, width = 10, height = 8)
+
+plot
+
+
+
+
+```
+
+# save table 2
+```{r, echo=FALSE}
+
+lmme <- data
+lmme$p.value <- ifelse(lmme$p.value < 0.001, "p < 0.001", paste("p =", lmme$p.value))
+lmme$Estimate <- round(lmme$Estimate, 2)
+lmme$Std.Error <- round(lmme$Std.Error, 2)
+lmme$lower <- round(lmme$lower, 2)
+lmme$upper <- round(lmme$upper, 2)
+
+
+#install.packages("writexl")
+library(writexl)
+file_path <- "../04_results/lmme.xlsx"
+write.xlsx(lmme, file_path, rowNames = FALSE)
+
+```
+
+
+## Scatterplots einzeln über alle Fragebogenkombinationen
+
+```{r, echo=FALSE}
+library(ggplot2)
+#install.packages("hrbrthemes")
+library(hrbrthemes)
+```
+
+
+#### BDIxCESD
+```{r, echo=FALSE}
+BDIxCESD$groupsize.y <- as.numeric(as.character(BDIxCESD$groupsize.y)) 
+BDIxCESD_plot<- ggplot(BDIxCESD, aes(x = `BDI.-.PROMIS.Skala`, y = `CESD.-.PROMIS.Skala`)) + 
+  geom_point(aes(size = groupsize.y)) +
+  geom_smooth(method = "lm", color = "red", fill = "#69b3a2", se = TRUE) +
+  xlim(40, 90) +
+  ylim(40, 90) +
+  labs(size = "Gruppengröße") +  # Hier wird der Name der Punktgröße geändert
+  theme_ipsum()
+```
+
+#### BDIxHADS
+```{r, echo=FALSE}
+BDIxHADS$groupsize.y <- as.numeric(as.character(BDIxHADS$groupsize.y))  
+BDIxHADS_plot<- ggplot(BDIxHADS, aes(x = `BDI.-.PROMIS.Skala`, y = `HADS.-.PROMIS.Skala`)) + 
+  geom_point(aes(size = groupsize.y)) +
+  geom_smooth(method = "lm", color = "red", fill = "#69b3a2", se = TRUE) +
+  xlim(40, 90) +
+  ylim(40, 90) +
+  labs(size = "Gruppengröße") +  # Hier wird der Name der Punktgröße geändert
+  theme_ipsum()
+```
+  
+#### BDIxPHQ
+```{r, echo=FALSE}
+BDIxPHQ$groupsize.y <- as.numeric(as.character(BDIxPHQ$groupsize.y))  
+BDIxPHQ_plot<- ggplot(BDIxPHQ, aes(x = `BDI.-.PROMIS.Skala`, y = `PHQ.-.PROMIS.Skala`)) + 
+  geom_point(aes(size = groupsize.y)) +
+  geom_smooth(method = "lm", color = "red", fill = "#69b3a2", se = TRUE) +
+  xlim(40, 90) +
+  ylim(40, 90) +
+  labs(size = "Gruppengröße") + 
+  theme_ipsum()
+```
+
+#### BDIxPROMIS
+```{r, echo=FALSE}
+BDIxPROMIS$groupsize.y <- as.numeric(as.character(BDIxPROMIS$groupsize.y))  
+BDIxPROMIS_plot <- ggplot(BDIxPROMIS, aes(x = `BDI.-.PROMIS.Skala`, y = `PROMIS`)) + 
+  geom_point(aes(size = groupsize.y)) +
+  geom_smooth(method = "lm", color = "red", fill = "#69b3a2", se = TRUE) +
+  xlim(40, 90) +
+  ylim(40, 90) +
+  labs(size = "Gruppengröße") +  
+  theme_ipsum()
+```
+
+#### CESDxHADS
+```{r, echo=FALSE}
+CESDxHADS$groupsize.y <- as.numeric(as.character(CESDxHADS$groupsize.y))  
+CESDxHADS_plot <- ggplot(CESDxHADS, aes(x = `CESD.-.PROMIS.Skala`, y = `HADS.-.PROMIS.Skala`)) + 
+  geom_point(aes(size = groupsize.y)) +
+  geom_smooth(method = "lm", color = "red", fill = "#69b3a2", se = TRUE) +
+  xlim(40, 90) +
+  ylim(40, 90) +
+  labs(size = "Gruppengröße") +
+  theme_ipsum()
+```
+
+#### CESDxPHQ
+```{r, echo=FALSE}
+CESDxPHQ$groupsize.y <- as.numeric(as.character(CESDxPHQ$groupsize.y))  
+CESDxPHQ_plot <- ggplot(CESDxPHQ, aes(x = `CESD.-.PROMIS.Skala`, y = `PHQ.-.PROMIS.Skala`)) + 
+  geom_point(aes(size = groupsize.y)) +
+  geom_smooth(method = "lm", color = "red", fill = "#69b3a2", se = TRUE) +
+  xlim(40, 90) +
+  ylim(40, 90) +
+  labs(size = "Gruppengröße") +
+  theme_ipsum()
+```
+
+#### PHQxPROMIS
+```{r, echo=FALSE}
+PHQxPROMIS$groupsize.y <- as.numeric(as.character(PHQxPROMIS$groupsize.y))  
+PHQxPROMIS_plot <- ggplot(PHQxPROMIS, aes(x = `PHQ.-.PROMIS.Skala`, y = `PROMIS`)) + 
+  geom_point(aes(size = groupsize.y)) +
+  geom_smooth(method = "lm", color = "red", fill = "#69b3a2", se = TRUE) +
+  xlim(40, 90) +
+  ylim(40, 90) +
+  labs(size = "Gruppengröße") +
+  theme_ipsum()
+```
+
+#### HADSxPHQ
+```{r, echo=FALSE}
+HADSxPHQ$groupsize.y <- as.numeric(as.character(HADSxPHQ$groupsize.y))  
+HADSxPHQ_plot <- ggplot(HADSxPHQ, aes(x = `HADS.-.PROMIS.Skala`, y = `PHQ.-.PROMIS.Skala`)) + 
+  geom_point(aes(size = groupsize.y)) +
+  geom_smooth(method = "lm", color = "red", fill = "#69b3a2", se = TRUE) +
+  xlim(40, 90) +
+  ylim(40, 90) +
+  labs(size = "Gruppengröße") +
+  theme_ipsum()
+```
+
+### Facetted Plot als Grid erstellen
+```{r, echo=FALSE}
+# einen Datensatz aus allen erstellen mit Wert 1 und Wert 2 und einer Zeile der Fragebogenkombination 
+
+BDIxCESD_short <- BDIxCESD %>%
+  mutate(`Wert 1` = `BDI.-.PROMIS.Skala`,
+         `Wert 2` = `CESD.-.PROMIS.Skala`,
+         `Fragebogenkombination` = "BDIxCESD")
+
+
+BDIxHADS_short <- BDIxHADS %>%
+  mutate(`Wert 1` = `BDI.-.PROMIS.Skala`,
+         `Wert 2` = `HADS.-.PROMIS.Skala`,
+         `Fragebogenkombination` = "BDIxHADS")
+
+
+BDIxPHQ_short <- BDIxPHQ %>%
+  mutate(`Wert 1` = `BDI.-.PROMIS.Skala`,
+         `Wert 2` = `PHQ.-.PROMIS.Skala`,
+         `Fragebogenkombination` = "BDIxPHQ")
+
+
+BDIxPROMIS_short <- BDIxPROMIS %>%
+  mutate(`Wert 1` = `BDI.-.PROMIS.Skala`,
+         `Wert 2` = `-.PROMIS.Skala`,
+         `Fragebogenkombination` = "BDIxPROMIS")
+
+
+CESDxHADS_short <- CESDxHADS %>%
+  mutate(`Wert 1` = `CESD.-.PROMIS.Skala`,
+         `Wert 2` = `HADS.-.PROMIS.Skala`,
+         `Fragebogenkombination` = "CESDxHADS")
+
+
+CESDxPHQ_short  <- CESDxPHQ %>%
+  mutate(`Wert 1` = `CESD.-.PROMIS.Skala`,
+         `Wert 2` = `PHQ.-.PROMIS.Skala`,
+         `Fragebogenkombination` = "CESDxPHQ")
+
+
+CESDxPROMIS_short  <- CESDxPROMIS %>%
+  mutate(`Wert 1` = `CESD.-.PROMIS.Skala`,
+         `Wert 2` = `-.PROMIS.Skala`,
+         `Fragebogenkombination` = "CESDxPROMIS")
+
+
+HADSxPHQ_short  <- HADSxPHQ %>%
+  mutate(`Wert 1` = `HADS.-.PROMIS.Skala`,
+         `Wert 2` = `PHQ.-.PROMIS.Skala`,
+         `Fragebogenkombination` = "HADSxPHQ")
+
+
+HADSxPROMIS_short <- HADSxPROMIS %>%
+  mutate(`Wert 1` = `HADS.-.PROMIS.Skala`,
+         `Wert 2` = `-.PROMIS.Skala`,
+         `Fragebogenkombination` = "HADSxPROMIS")
+
+
+PHQxPROMIS_short <- PHQxPROMIS %>%
+  mutate(`Wert 1` = `PHQ.-.PROMIS.Skala`,
+         `Wert 2` = `-.PROMIS.Skala`,
+         `Fragebogenkombination` = "PHQxPROMIS")
+
+# datensätze verbinden, um sie als faceted plot aus einer Tabelle plotten zu können
+
+BDIxCESD_short_selected <- BDIxCESD_short %>%
+  select("Wert 1", "Wert 2", "Fragebogenkombination", "groupsize.y")
+
+BDIxHADS_short_selected <- BDIxHADS_short %>%
+  select("Wert 1", "Wert 2", "Fragebogenkombination", "groupsize.y")
+
+BDIxPHQ_short_selected <- BDIxPHQ_short %>%
+  select("Wert 1", "Wert 2", "Fragebogenkombination", "groupsize.y")
+
+BDIxPROMIS_short_selected <- BDIxPROMIS_short %>%
+  select("Wert 1", "Wert 2", "Fragebogenkombination", "groupsize.y")
+
+CESDxHADS_short_selected <- CESDxHADS_short %>%
+  select("Wert 1", "Wert 2", "Fragebogenkombination", "groupsize.y")
+
+CESDxPHQ_short_selected <- CESDxPHQ_short %>%
+  select("Wert 1", "Wert 2", "Fragebogenkombination", "groupsize.y")
+
+PHQxPROMIS_short_selected <- PHQxPROMIS_short %>%
+  select("Wert 1", "Wert 2", "Fragebogenkombination", "groupsize.y")
+
+HADSxPHQ_short_selected <- HADSxPHQ_short %>%
+  select("Wert 1", "Wert 2", "Fragebogenkombination", "groupsize.y")
+
+
+
+# Datensätze untereinander verbinden (join)
+verbundener_datensatz <- bind_rows(
+  BDIxHADS_short_selected,
+  BDIxCESD_short_selected,
+  BDIxPHQ_short_selected,
+  BDIxPROMIS_short_selected,
+  CESDxHADS_short_selected,
+  CESDxPHQ_short_selected,
+  PHQxPROMIS_short_selected,
+  HADSxPHQ_short_selected
+)
+
+# Ersetze "nicht berichtet (!)" durch NA in allen Spalten
+verbundener_datensatz <- verbundener_datensatz %>%
+  mutate_all(~ ifelse(. == "nicht berichtet (!)", NA, .)) %>%
+  rename(Wert1 = "Wert 1", Wert2 = "Wert 2")
+
+# ggplot erstellen
+
+
+sp <- ggplot(data = verbundener_datensatz, aes(x = Wert2, y = Wert1)) +
+  geom_point(aes(size = ifelse(is.na(groupsize.y), 100, groupsize.y), color = ifelse(is.na(groupsize.y), "blue", "black"))) +
+  geom_smooth(method = "lm", color = "red", size = 0.5, fill = "#69b3a2", se = TRUE) +
+  labs(size = "Groupsize") +
+  scale_size_continuous(range = c(0, 5), breaks = seq(0, 4000, by = 1000)) +
+  scale_color_identity() +
+  xlim(40, 90) +
+  ylim(40, 90) +
+  labs(x = "First Value of combination", y = "Second Value of combination")
+
+
+
+sp
+
+faceted_scatterplot <- sp + facet_wrap( ~ Fragebogenkombination, ncol = 3)
+
+file_path <- "../04_results/faceted_scatterplot.png"
+ggsave(file_path, faceted_scatterplot, width = 10, height = 6, units = "in")
+
+
+
+
+```
+
+
+# Blant Altman Plots
+## Version 1 mit blandr.draw Funktion
+### Blant Altman Plot einzeln 
+```{r, echo=FALSE}
+#install.packages("blandr")
+library(blandr)
+
+#BDIxCESD
+BDIxCESD_BA_plot <- blandr.draw(BDIxCESD$'BDI.-.PROMIS.Skala', BDIxCESD$'CESD.-.PROMIS.Skala') +
+  theme(text = element_text(size = 6)) +
+  labs(title = "BDIxCESD") +
+  xlim(40, 80) +
+  ylim(-15, 25)
+
+# BDIxHADS
+BDIxHADS_BA_plot <- blandr.draw(BDIxHADS$'BDI.-.PROMIS.Skala', BDIxHADS$'HADS.-.PROMIS.Skala') +
+  theme(text = element_text(size = 6)) +
+  labs(title = "BDIxHADS") +
+  xlim(40, 80) +
+  ylim(-15, 25)
+
+# BDIxPHQ
+BDIxPHQ_BA_plot <- blandr.draw(BDIxPHQ$'BDI.-.PROMIS.Skala', BDIxPHQ$'PHQ.-.PROMIS.Skala') +
+  theme(text = element_text(size = 6)) +
+  labs(title = "BDIxPHQ") +
+  xlim(40, 80) +
+  ylim(-15, 25)
+
+# BDIxPROMIS
+BDIxPROMIS_BA_plot <- blandr.draw(BDIxPROMIS$'BDI.-.PROMIS.Skala', BDIxPROMIS$'-.PROMIS.Skala') +
+  theme(text = element_text(size = 6)) +
+  labs(title = "BDIxPROMIS") +
+  xlim(40, 80) +
+  ylim(-15, 25)
+
+
+# CESDxHADS
+CESDxHADS_BA_plot <- blandr.draw(CESDxHADS$'CESD.-.PROMIS.Skala', CESDxHADS$'HADS.-.PROMIS.Skala') +
+  theme(text = element_text(size = 6)) +
+  labs(title = "CESDxHADS") +
+  xlim(40, 80) +
+  ylim(-15, 25)
+
+# CESDxPHQ
+CESDxPHQ_BA_plot <- blandr.draw(CESDxPHQ$'CESD.-.PROMIS.Skala', CESDxPHQ$'PHQ.-.PROMIS.Skala') +
+  theme(text = element_text(size = 6)) +
+  labs(title = "CESDxPHQ") +
+  xlim(40, 80) +
+  ylim(-15, 25)
+
+# CESDxPROMIS
+#CESDxPROMIS_BA_plot <- blandr.draw(CESDxPROMIS$'CESD.-.PROMIS.Skala', CESDxPROMIS$'-.PROMIS.Skala') +
+#  theme(text = element_text(size = 6)) +
+#  labs(title = "CESDxPROMIS") +
+#  xlim(40, 80) +
+#  ylim(-15, 25)
+
+
+# HADSxPHQ  
+HADSxPHQ_BA_plot <- blandr.draw(HADSxPHQ$'HADS.-.PROMIS.Skala', HADSxPHQ$'PHQ.-.PROMIS.Skala') +
+  theme(text = element_text(size = 6)) +
+  labs(title = "HADSxPHQ") +
+  xlim(40, 80) +
+  ylim(-15, 25)
+
+# PHQxPROMIS
+PHQxPROMIS_BA_plot <- blandr.draw(PHQxPROMIS$'PHQ.-.PROMIS.Skala', PHQxPROMIS$'-.PROMIS.Skala',
+                                  x.plot.mode = 4) +
+  theme(text = element_text(size = 6)) +
+  labs(title = "PHQxPROMIS") +
+  xlim(40, 80) +
+  ylim(-15, 25)
+
+
+```
+
+
+### Blant Altman Plot alle
+```{r, echo=FALSE}
+library(gridExtra)
+
+Blant_plot<- suppressWarnings({
+  BDIxCESD_BA_plot <- blandr.draw(BDIxCESD$'BDI.-.PROMIS.Skala', BDIxCESD$'CESD.-.PROMIS.Skala')
+  BDIxCESD_BA_plot <- BDIxCESD_BA_plot +
+    geom_point(size = 0.1) +
+    scale_size(range = c(0.1, 1.0)) +  
+    theme(text = element_text(size = 6)) +
+    
+    labs(title = "BDIxCESD") +
+    xlim(40, 80) +
+    ylim(-15, 25)
+
+  BDIxHADS_BA_plot 
+  BDIxPHQ_BA_plot
+  CESDxHADS_BA_plot 
+  CESDxPHQ_BA_plot
+  PHQxPROMIS_BA_plot
+  HADSxPHQ_BA_plot 
+
+  grid.arrange(BDIxCESD_BA_plot, BDIxHADS_BA_plot, BDIxPHQ_BA_plot, CESDxHADS_BA_plot, CESDxPHQ_BA_plot, PHQxPROMIS_BA_plot,HADSxPHQ_BA_plot, nrow = 2)
+})
+
+
+```
+
+
+## Version 2: händisch Plots bauen um weighted means einbeziehen zu können
+### Blant Altman Plots mit weighted means
+#### BDIxCESD
+```{r, echo=FALSE}
+
+# der weighted mean ist nur eine Zahl weil er über alle Werte und Weights mittelt:
+BDIxCESD$weigh.mean.BDI <- weighted.mean(BDIxCESD$'BDI.-.PROMIS.Skala', BDIxCESD$groupsize.y)
+BDIxCESD$weigh.mean.CESD <- weighted.mean(BDIxCESD$'CESD.-.PROMIS.Skala', BDIxCESD$groupsize.y)
+BDIxCESD$weigh.diff <- BDIxCESD$weigh.mean.BDI - BDIxCESD$weigh.mean.CESD
+
+#create a new column for average measurement
+BDIxCESD$avg <- rowMeans(BDIxCESD[c('BDI.-.PROMIS.Skala', 'CESD.-.PROMIS.Skala')], na.rm = TRUE)
+
+#create a new column for differences
+BDIxCESD$diff <- BDIxCESD$'BDI.-.PROMIS.Skala' - BDIxCESD$'CESD.-.PROMIS.Skala'
+
+#find an average difference
+mean_diff <- mean(BDIxCESD$diff)
+mean_diff_bdixcesd <- mean_diff
+
+#find lower 95% confidence interval limits
+lower <- mean_diff - 1.96*sd(BDIxCESD$diff)
+
+# find upper 95% confidence interval limits
+upper <- mean_diff + 1.96*sd(BDIxCESD$diff)
+
+# Create the Bland-Altman Plot
+library(ggplot2)
+BDIxCESD_BA_plot_weighted <- ggplot(BDIxCESD, aes(x = avg, y = diff)) +
+  geom_point(size=1) +
+  geom_hline(yintercept = mean_diff, linetype="dashed", lwd=0.5) +
+  geom_hline(yintercept = lower, color = "red", linetype="dashed") +
+  geom_hline(yintercept = upper, color = "red", linetype="dashed") +
+  geom_hline(yintercept = 0, color = "blue") +
+  ggtitle("BDIxCESD") +
+  ylab("Difference Between Instruments") +
+  xlab("Average")+
+  theme_bw() +
+  theme(
+    text = element_text(size = 8),  
+    axis.title = element_text(size = 6),
+    axis.text = element_text(size = 8),
+    plot.title = element_text(size = 8) 
+  ) +  xlim(40, 80) +
+  ylim(-15, 25) 
+
+
+```
+
+
+####BDIxHADS
+```{r, echo=FALSE}
+
+# Calculate weighted means
+weigh.mean.BDI <- weighted.mean(BDIxHADS$'BDI.-.PROMIS.Skala', BDIxHADS$groupsize.y)
+weigh.mean.HADS <- weighted.mean(BDIxHADS$'HADS.-.PROMIS.Skala', BDIxHADS$groupsize.y)
+weigh.diff <- weigh.mean.BDI - weigh.mean.HADS
+
+# Create a new column for average measurement
+BDIxHADS$avg <- rowMeans(BDIxHADS[c('BDI.-.PROMIS.Skala', 'HADS.-.PROMIS.Skala')], na.rm = TRUE)
+
+# Create a new column for differences
+BDIxHADS$diff <- BDIxHADS$'BDI.-.PROMIS.Skala' - BDIxHADS$'HADS.-.PROMIS.Skala'
+
+# Find the average difference
+mean_diff <- mean(BDIxHADS$diff)
+mean_diff_bdixhads <- mean_diff
+
+# Find lower 95% confidence interval limits
+lower <- mean_diff - 1.96 * sd(BDIxHADS$diff)
+
+# Find upper 95% confidence interval limits
+upper <- mean_diff + 1.96 * sd(BDIxHADS$diff)
+
+# Create the Bland-Altman Plot
+library(ggplot2)
+BDIxHADS_BA_plot_weighted <- ggplot(BDIxHADS, aes(x = avg, y = diff)) +
+  geom_point(size=1) +
+  geom_hline(yintercept = mean_diff, linetype="dashed", lwd=0.5) +
+  geom_hline(yintercept = lower, color = "red", linetype="dashed") +
+  geom_hline(yintercept = upper, color = "red", linetype="dashed") +
+  geom_hline(yintercept = 0, color = "blue") +
+  ggtitle("BDIxHADS") +
+  ylab("Difference Between Instruments") +
+  xlab("Average") +
+  theme_bw() +
+  theme(
+    text = element_text(size = 8),  
+    axis.title = element_text(size = 6),
+    axis.text = element_text(size = 8),
+    plot.title = element_text(size = 8) 
+  ) +
+  xlim(40, 80) +
+  ylim(-15, 25)
+
+```
+####BDIxPHQ
+```{r, echo=FALSE}
+# Calculate weighted means
+weigh.mean.BDI <- weighted.mean(BDIxPHQ$'BDI.-.PROMIS.Skala', BDIxPHQ$groupsize.y)
+weigh.mean.PHQ <- weighted.mean(BDIxPHQ$'PHQ.-.PROMIS.Skala', BDIxPHQ$groupsize.y)
+weigh.diff <- weigh.mean.BDI - weigh.mean.PHQ
+
+# Create a new column for average measurement
+BDIxPHQ$avg <- rowMeans(BDIxPHQ[c('BDI.-.PROMIS.Skala', 'PHQ.-.PROMIS.Skala')], na.rm = TRUE)
+
+# Create a new column for differences
+BDIxPHQ$diff <- BDIxPHQ$'BDI.-.PROMIS.Skala' - BDIxPHQ$'PHQ.-.PROMIS.Skala'
+
+# Find the average difference
+mean_diff <- mean(BDIxPHQ$diff)
+mean_diff_bdixphq <- mean_diff
+
+# Find lower 95% confidence interval limits
+lower <- mean_diff - 1.96 * sd(BDIxPHQ$diff)
+
+# Find upper 95% confidence interval limits
+upper <- mean_diff + 1.96 * sd(BDIxPHQ$diff)
+
+# Create the Bland-Altman Plot
+library(ggplot2)
+BDIxPHQ_BA_plot_weighted <- ggplot(BDIxPHQ, aes(x = avg, y = diff)) +
+  geom_point(size=1) +
+  geom_hline(yintercept = mean_diff, linetype="dashed", lwd=0.5) +
+  geom_hline(yintercept = lower, color = "red", linetype="dashed") +
+  geom_hline(yintercept = upper, color = "red", linetype="dashed") +
+  geom_hline(yintercept = 0, color = "blue") +
+  ggtitle("BDIxPHQ") +
+  ylab("Difference Between Instruments") +
+  xlab("Average") +
+  theme_bw() +
+  theme(
+    text = element_text(size = 8),  
+    axis.title = element_text(size = 6),
+    axis.text = element_text(size = 8),
+    plot.title = element_text(size = 8) 
+  ) +
+  xlim(40, 80) +
+  ylim(-15, 25)
+
+```
+####BDIxPROMIS
+```{r, echo=FALSE}
+
+# Assuming your data frame is named BDIxPROMIS
+
+# Calculate weighted means
+weigh.mean.BDI <- weighted.mean(BDIxPROMIS$'BDI.-.PROMIS.Skala', BDIxPROMIS$groupsize.y)
+weigh.mean.PROMIS <- weighted.mean(BDIxPROMIS$'-.PROMIS', BDIxPROMIS$groupsize.y)
+weigh.diff <- weigh.mean.BDI - weigh.mean.PROMIS
+
+# Create a new column for average measurement
+BDIxPROMIS$avg <- rowMeans(BDIxPROMIS[c('BDI.-.PROMIS.Skala', '-.PROMIS.Skala')], na.rm = TRUE)
+
+# Create a new column for differences
+BDIxPROMIS$diff <- BDIxPROMIS$'BDI.-.PROMIS.Skala' - BDIxPROMIS$'-.PROMIS'
+
+# Find the average difference
+mean_diff <- mean(BDIxPROMIS$diff)
+mean_diff_bdixpromis <- mean_diff
+
+# Find lower 95% confidence interval limits
+lower <- mean_diff - 1.96 * sd(BDIxPROMIS$diff)
+
+# Find upper 95% confidence interval limits
+upper <- mean_diff + 1.96 * sd(BDIxPROMIS$diff)
+
+# Create the Bland-Altman Plot
+library(ggplot2)
+BDIxPROMIS_BA_plot_weighted <- ggplot(BDIxPROMIS, aes(x = avg, y = diff)) +
+  geom_point(size=1) +
+  geom_hline(yintercept = mean_diff, linetype="dashed", lwd=0.5) +
+  geom_hline(yintercept = lower, color = "red", linetype="dashed") +
+  geom_hline(yintercept = upper, color = "red", linetype="dashed") +
+  geom_hline(yintercept = 0, color = "blue") +
+  ggtitle("BDIxPROMIS") +
+  ylab("Difference Between Instruments") +
+  theme_bw() +
+  theme(
+    text = element_text(size = 8),  
+    axis.title = element_text(size = 6),
+    axis.text = element_text(size = 8),
+    plot.title = element_text(size = 8) 
+  ) +
+  xlim(40, 80) +
+  ylim(-15, 25)
+
+
+
+```
+
+
+####CESDxHADS
+```{r, echo=FALSE}
+
+# Assuming CESDxHADS contains CESD and HADS scores
+
+# Calculate weighted means
+weigh.mean.CESD <- weighted.mean(CESDxHADS$'CESD.-.PROMIS.Skala', CESDxHADS$groupsize.y)
+weigh.mean.HADS <- weighted.mean(CESDxHADS$'HADS.-.PROMIS.Skala', CESDxHADS$groupsize.y)
+weigh.diff <- weigh.mean.CESD - weigh.mean.HADS
+
+# Create a new column for average measurement
+CESDxHADS$avg <- rowMeans(CESDxHADS[c('CESD.-.PROMIS.Skala', 'HADS.-.PROMIS.Skala')], na.rm = TRUE)
+
+# Create a new column for differences
+CESDxHADS$diff <- CESDxHADS$'CESD.-.PROMIS.Skala' - CESDxHADS$'HADS.-.PROMIS.Skala'
+
+# Find the average difference
+mean_diff <- mean(CESDxHADS$diff)
+mean_diff_cesdxhads <- mean_diff
+
+# Find lower 95% confidence interval limits
+lower <- mean_diff - 1.96 * sd(CESDxHADS$diff)
+
+# Find upper 95% confidence interval limits
+upper <- mean_diff + 1.96 * sd(CESDxHADS$diff)
+
+# Create the Bland-Altman Plot
+library(ggplot2)
+CESDxHADS_BA_plot_weighted <- ggplot(CESDxHADS, aes(x = avg, y = diff)) +
+  geom_point(size=1) +
+  geom_hline(yintercept = mean_diff, linetype="dashed", lwd=0.5) +
+  geom_hline(yintercept = lower, color = "red", linetype="dashed") +
+  geom_hline(yintercept = upper, color = "red", linetype="dashed") +
+  geom_hline(yintercept = 0, color = "blue") +
+  ggtitle("CESDxHADS") +
+  ylab("Difference Between Instruments") +
+  xlab("Average") +
+  theme_bw() +
+  theme(
+    text = element_text(size = 8),  
+    axis.title = element_text(size = 6),
+    axis.text = element_text(size = 8),
+    plot.title = element_text(size = 8) 
+  ) +
+  xlim(40, 80) +
+  ylim(-15, 25)
+
+
+```
+####CESDxPHQ
+```{r, echo=FALSE}
+
+# Assuming your data frame is named CESDxPHQ
+
+# Calculate weighted means
+weigh.mean.CESD <- weighted.mean(CESDxPHQ$'CESD.-.PROMIS.Skala', CESDxPHQ$groupsize.y)
+weigh.mean.PHQ <- weighted.mean(CESDxPHQ$'PHQ.-.PROMIS.Skala', CESDxPHQ$groupsize.y)
+weigh.diff <- weigh.mean.CESD - weigh.mean.PHQ
+
+# Create a new column for average measurement
+CESDxPHQ$avg <- rowMeans(CESDxPHQ[c('CESD.-.PROMIS.Skala', 'PHQ.-.PROMIS.Skala')], na.rm = TRUE)
+
+# Create a new column for differences
+CESDxPHQ$diff <- CESDxPHQ$'CESD.-.PROMIS.Skala' - CESDxPHQ$'PHQ.-.PROMIS.Skala'
+
+# Find the average difference
+mean_diff <- mean(CESDxPHQ$diff)
+mean_diff_cesdxphq <- mean_diff
+
+# Find lower 95% confidence interval limits
+lower <- mean_diff - 1.96 * sd(CESDxPHQ$diff)
+
+# Find upper 95% confidence interval limits
+upper <- mean_diff + 1.96 * sd(CESDxPHQ$diff)
+
+# Create the Bland-Altman Plot
+library(ggplot2)
+CESDxPHQ_BA_plot_weighted <- ggplot(CESDxPHQ, aes(x = avg, y = diff)) +
+  geom_point(size=1) +
+  geom_hline(yintercept = mean_diff, linetype="dashed", lwd=0.5) +
+  geom_hline(yintercept = lower, color = "red", linetype="dashed") +
+  geom_hline(yintercept = upper, color = "red", linetype="dashed") +
+  geom_hline(yintercept = 0, color = "blue") +
+  ggtitle("CESDxPHQ") +
+  ylab("Difference Between Instruments") +
+  xlab("Average") +
+  theme_bw() +
+  theme(
+    text = element_text(size = 8),  
+    axis.title = element_text(size = 6),
+    axis.text = element_text(size = 8),
+    plot.title = element_text(size = 8) 
+  ) +
+  xlim(40, 80) +
+  ylim(-15, 25)
+
+
+```
+#### PHQxPROMIS
+```{r, echo=FALSE}
+# Assuming your data frame is named PHQxPROMIS
+
+# Calculate weighted means
+weigh.mean.PHQ <- weighted.mean(PHQxPROMIS$'PHQ.-.PROMIS.Skala', PHQxPROMIS$groupsize.y)
+weigh.mean.PROMIS <- weighted.mean(PHQxPROMIS$'-.PROMIS.Skala', PHQxPROMIS$groupsize.y)
+weigh.diff <- weigh.mean.PHQ - weigh.mean.PROMIS
+
+# Create a new column for average measurement
+PHQxPROMIS$avg <- rowMeans(PHQxPROMIS[c('PHQ.-.PROMIS.Skala', '-.PROMIS.Skala')], na.rm = TRUE)
+
+# Create a new column for differences
+PHQxPROMIS$diff <- PHQxPROMIS$'PHQ.-.PROMIS.Skala' - PHQxPROMIS$'-.PROMIS.Skala'
+
+# Find the average difference
+mean_diff <- mean(PHQxPROMIS$diff)
+mean_diff_phqxpromis <- mean_diff
+
+# Find lower 95% confidence interval limits
+lower <- mean_diff - 1.96 * sd(PHQxPROMIS$diff)
+
+# Find upper 95% confidence interval limits
+upper <- mean_diff + 1.96 * sd(PHQxPROMIS$diff)
+
+# Create the Bland-Altman Plot
+library(ggplot2)
+PHQxPROMIS_BA_plot_weighted <- ggplot(PHQxPROMIS, aes(x = avg, y = diff)) +
+  geom_point(size=1) +
+  geom_hline(yintercept = mean_diff, linetype="dashed", lwd=0.5) +
+  geom_hline(yintercept = lower, color = "red", linetype="dashed") +
+  geom_hline(yintercept = upper, color = "red", linetype="dashed") +
+  geom_hline(yintercept = 0, color = "blue") +
+  ggtitle("PHQxPROMIS") +
+  ylab("Difference Between Instruments") +
+  theme_bw() +
+  theme(
+    text = element_text(size = 8),  
+    axis.title = element_text(size = 6),
+    axis.text = element_text(size = 8),
+    plot.title = element_text(size = 8) 
+  ) +
+  xlim(40, 80) +
+  ylim(-15, 25)
+
+```
+####HADSxPHQ
+```{r, echo=FALSE}
+# Assuming your data frame is named HADSxPHQ
+
+# Calculate weighted means
+weigh.mean.HADS <- weighted.mean(HADSxPHQ$'HADS.-.PROMIS.Skala', HADSxPHQ$groupsize.y)
+weigh.mean.PHQ <- weighted.mean(HADSxPHQ$'PHQ.-.PROMIS.Skala', HADSxPHQ$groupsize.y)
+weigh.diff <- weigh.mean.HADS - weigh.mean.PHQ
+
+# Create a new column for average measurement
+HADSxPHQ$avg <- rowMeans(HADSxPHQ[c('HADS.-.PROMIS.Skala', 'PHQ.-.PROMIS.Skala')], na.rm = TRUE)
+
+# Create a new column for differences
+HADSxPHQ$diff <- HADSxPHQ$'HADS.-.PROMIS.Skala' - HADSxPHQ$'PHQ.-.PROMIS.Skala'
+
+# Find the average difference
+mean_diff <- mean(HADSxPHQ$diff)
+mean_diff_hadsxphq <- mean_diff
+
+# Find lower 95% confidence interval limits
+lower <- mean_diff - 1.96 * sd(HADSxPHQ$diff)
+
+# Find upper 95% confidence interval limits
+upper <- mean_diff + 1.96 * sd(HADSxPHQ$diff)
+
+
+
+# Create the Bland-Altman Plot
+library(ggplot2)
+
+# ... (your existing data and calculations)
+
+# Create Bland-Altman Plot
+HADSxPHQ_BA_plot_weighted <- ggplot(HADSxPHQ, aes(x = avg, y = diff)) +
+  geom_point(size=1) +
+  geom_hline(yintercept = mean_diff, linetype="dashed", lwd=0.5) +
+  geom_hline(yintercept = lower, color = "red", linetype="dashed") +
+  geom_hline(yintercept = upper, color = "red", linetype="dashed") +
+  geom_hline(yintercept = 0, color = "blue") +
+  ggtitle("HADSxPHQ") +
+  ylab("Difference Between Instruments") +
+  xlab("Average") +
+  theme_bw() +
+  theme(
+    text = element_text(size = 8),  
+    axis.title = element_text(size = 6),
+    axis.text = element_text(size = 8),
+    plot.title = element_text(size = 8) 
+  ) +
+  xlim(40, 80) +
+  ylim(-15, 25)
+
+```
+
+### Grid erstellen
+```{r, echo=FALSE}
+library(gridExtra)
+
+Blant_plot_weighted <- suppressWarnings({
+  BDIxCESD_BA_plot_weighted
+  BDIxHADS_BA_plot_weighted 
+  BDIxPHQ_BA_plot_weighted
+  BDIxPROMIS_BA_plot_weighted
+  CESDxHADS_BA_plot_weighted
+  CESDxPHQ_BA_plot_weighted
+  PHQxPROMIS_BA_plot_weighted
+  HADSxPHQ_BA_plot_weighted 
+
+  grid.arrange(BDIxCESD_BA_plot_weighted, BDIxHADS_BA_plot_weighted, BDIxPHQ_BA_plot_weighted, BDIxPROMIS_BA_plot_weighted, CESDxHADS_BA_plot_weighted, CESDxPHQ_BA_plot_weighted, PHQxPROMIS_BA_plot_weighted,HADSxPHQ_BA_plot_weighted, nrow = 2)
+})
+
+
+
+file_path <- "../04_results/Blant_plot_weighted.png"
+ggsave(file_path, Blant_plot_weighted, width = 10, height = 6, units = "in")
+
+
+
+```
+## Mean diff und sd über alle berrechnen
+```{r, echo=FALSE}
+overall_mean <- mean(mean_diff_bdixcesd, mean_diff_bdixhads, mean_diff_bdixphq, mean_diff_bdixpromis, mean_diff_cesdxhads, mean_diff_cesdxphq, mean_diff_phqxpromis, mean_diff_hadsxphq)
+
+
+sd_bdi_BDIxCESD <- sd(BDIxCESD$`BDI.-.PROMIS.Skala`)
+sd_bdi_BDIxHADS <- sd(BDIxHADS$`BDI.-.PROMIS.Skala`)
+sd_bdi_BDIxPHQ <- sd(BDIxPHQ$`BDI.-.PROMIS.Skala`)
+sd_bdi_BDIxPROMIS <- sd(BDIxPROMIS$`BDI.-.PROMIS.Skala`)
+
+sd_cesd_BDIxCESD <- sd(BDIxCESD$`CESD.-.PROMIS.Skala`)
+sd_hads_BDIxHADS <- sd(BDIxHADS$`HADS.-.PROMIS.Skala`)
+sd_phq_BDIxPHQ <- sd(BDIxPHQ$`PHQ.-.PROMIS.Skala`)
+sd_promis_BDIxPROMIS <- sd(BDIxPROMIS$`PROMIS`)
+
+sd_cesd_CESDxHADS <- sd(CESDxHADS$`CESD.-.PROMIS.Skala`)
+sd_cesd_CESDxPHQ <- sd(CESDxPHQ$`CESD.-.PROMIS.Skala`)
+
+sd_hads_CESDxHADS <- sd(CESDxHADS$`HADS.-.PROMIS.Skala`)
+sd_phq_CESDxPHQ <- sd(CESDxPHQ$`PHQ.-.PROMIS.Skala`)
+
+sd_phq_PHQxPROMIS <- sd(PHQxPROMIS$`PHQ.-.PROMIS.Skala`)
+
+sd_promis_PHQxPROMIS <- sd(PHQxPROMIS$`PROMIS`)
+
+sd_hads_HADSxPHQ <- sd(HADSxPHQ$`HADS.-.PROMIS.Skala`)
+
+sd_phq_HADSxPHQ <- sd(HADSxPHQ$`PHQ.-.PROMIS.Skala`)
+
+standardabweichungen <- c(
+  sd_bdi_BDIxCESD, sd_bdi_BDIxHADS, sd_bdi_BDIxPHQ, sd_bdi_BDIxPROMIS,
+  sd_cesd_BDIxCESD, sd_hads_BDIxHADS, sd_phq_BDIxPHQ, sd_promis_BDIxPROMIS,
+  sd_cesd_CESDxHADS, sd_cesd_CESDxPHQ,
+  sd_hads_CESDxHADS, sd_phq_CESDxPHQ,
+  sd_phq_PHQxPROMIS, sd_promis_PHQxPROMIS,
+  sd_hads_HADSxPHQ, sd_phq_HADSxPHQ
+)
+
+mean_standardabweichungen <- mean(standardabweichungen)
+
+print(mean_standardabweichungen)
+
+
+
+```
