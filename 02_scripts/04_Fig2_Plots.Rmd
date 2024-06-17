@@ -3,7 +3,9 @@ title: "02_script_for_plots"
 output: html_document
 date: "2024-01-10"
 ---
-# Scatterplots
+
+# Scatter und Bland-Altmann Plots
+
 ## load data
 ```{r, echo=FALSE}
 library(readxl)
@@ -28,7 +30,7 @@ SUBSET_PROMIS <- read.xlsx(file_path) %>% unique()
 ```
 
 
-## Scatter und Bland-Altmann Plots
+## In drei Schritten results Liste mit "Study", "Variable", "measure_1", "measure_2", "value_1", "value_2", "groupsize" aus allen Fragebogenkombinationen erstellen
 
 ```{r, echo=FALSE}
 library(Hmisc)
@@ -68,6 +70,13 @@ results3 = bind_rows(results2)
 library(ggplot2)
 results3$groupsize = as.numeric(results3$groupsize)
 
+
+```
+
+## plots
+
+```{r, echo=FALSE}
+
 ggplot(results3, aes(x = value_1, value_2)) + geom_point() + facet_grid(measure_1 ~ measure_2) + geom_abline() + geom_smooth()
 ggplot(results3, aes(x = value_1, value_2)) + geom_point(aes(size = groupsize)) + facet_grid(measure_1 ~ measure_2) + geom_abline() 
 
@@ -95,15 +104,14 @@ ggplot(results3, aes(x = m, y = d)) + geom_point()+ facet_grid(measure_1 ~ measu
   geom_hline(data = results4, aes(yintercept = wgt_mean)) + 
   geom_hline(data = results4, aes(yintercept = wtd_lo), linetype = 2) +
   geom_hline(data = results4, aes(yintercept = wtd_hi), linetype = 2) +
-  labs(title = "Weighted")
+  labs(title = "Weighted") 
 
 
 ```
 
+# lineare gemischte Modelle 
 ```{r, echo=FALSE}
 
-<<<<<<< HEAD
-=======
 library(lme4)
 library(emmeans)
 library(Matrix)
@@ -113,12 +121,10 @@ interceptonlymodel <- lmer(formula = d ~ 1 + (1|Study), weights = groupsize, dat
 summary(interceptonlymodel)
 emmeans(interceptonlymodel, ~1)
 
-
- 
  
 ```
 
-### Hinzufügen eines Level-1 Prädiktors
+## Hinzufügen eines Level-1 Prädiktors
 Wir wollen natürlich herausfinden, woran es liegen könnte, dass die Studien unterschiedliche Differenzen haben.
 
 Hypothese 1: Die Differenz hängt mit der Fragebogenkombination zusammen.
@@ -143,36 +149,25 @@ summary(anova_result)
 
 anova(questionnairemodel, interceptonlymodel)
 
-
 ```
 
 
 ## Scatterplots einzeln über alle Fragebogenkombinationen
 ```{r }
->>>>>>> a699a81a6cc393886f3d0c8afa5fbbbc800e485a
+
+
 library(ggplot2)
 
-max_groupsize_row <- which.max(results3$groupsize)
-
-# Remove this row to avoid distortion in the plot
-results3_adjusted <- results3[-max_groupsize_row, ]
-
-# Generate the plot without the outlier
-plot <- ggplot(results3_adjusted, aes(x = groupsize, y = d, group = interaction(d > 0.5), color = d > 0.5)) +
-  geom_line() +  # Connect points with lines
+plot <- ggplot(results3, aes(x = groupsize, y = d)) +
   geom_point() +  # Add points to visualize individual observations
-  scale_color_manual(values = c("red", "blue"),  # Define custom colors for different categories of 'd'
-                     labels = c("d ≤ 0.5", "d > 0.5"),
-                     name = "Difference Category") +
-  geom_hline(yintercept = 0.5, linetype = "dashed", color = "black") +  # Dashed line at d = 0.5
+  geom_smooth(data = subset(results3, d > 0), method = "loess", se = FALSE, color = "blue") + 
+  geom_smooth(data = subset(results3, d < 0), method = "loess", se = FALSE, color = "red") + 
+  geom_ribbon(aes(ymin = -1, ymax = 1, xmin = 0, xmax = 1000), fill = "grey", alpha = .2) +  
   labs(
-    x = "Group Size",
-    y = "Difference (d)",
-    title = "Plot of Difference vs. Group Size",
-    subtitle = "Two lines showing trends converging towards d = 0.5",
-    caption = "Outlier with very high group size removed for better visualization."
-  ) +
-  theme_minimal()  # Use a minimalistic theme for a clean plot
+    x = "Gruppengröße",
+    y = "Differenzen zwischen den Fragebogenpaaren insgesamt",
+    title = "Plot of Difference vs. Group Size"  ) +
+  theme_minimal()  
 
 # Display the plot
 print(plot)
@@ -182,37 +177,29 @@ ggsave("plot_of_difference_vs_group_size.png", plot, width = 10, height = 8, dpi
 
 
 
-
-
-# Load the ggplot2 library for creating visuals
 library(ggplot2)
 
-# Assuming 'results' contains the columns 'd' for differences and 'groupsize' for the size of each group.
-# This visualization explores how the difference 'd' varies with 'groupsize', including smooth trend lines.
+# Daten filtern, um Ausreißer zu entfernen, deren Gruppengröße über 2000 liegt
+results3_filtered <- subset(results3, groupsize <= 2000)
 
-# Generate the plot
-plot <- ggplot(results3, aes(x = groupsize, y = d, color = d > 0.5)) +
-  geom_point() +  # Add points to visualize individual observations
-  geom_smooth(aes(group = interaction(d > 0.5)),  # Add smooth lines to show trends
-              method = "loess",  # 'loess' is good for smaller datasets, use 'gam' for larger datasets
-              se = TRUE,  # Display confidence interval around the smooth line
-              color = "black") +  # Specify color of the smooth line if desired
-  scale_color_manual(values = c("red", "blue"),  # Define custom colors for different categories of 'd'
-                     labels = c("d ≤ 0.5", "d > 0.5"),
-                     name = "Difference Category") +
-  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey") +  # Dashed line at d = 0.5
+# Grafik erstellen mit den gefilterten Daten
+plot <- ggplot(results3_filtered, aes(x = groupsize, y = d)) +
+  geom_point() +  # Punkte hinzufügen, um einzelne Beobachtungen zu visualisieren
+  geom_smooth(data = subset(results3_filtered, d > 0), method = "loess", se = FALSE, color = "blue") +
+  geom_smooth(data = subset(results3_filtered, d < 0), method = "loess", se = FALSE, color = "red") +
+  geom_ribbon(aes(ymin = -1, ymax = 1, xmin = 0, xmax = 1000), fill = "grey", alpha = .2) +
+  facet_grid(measure_1 ~ measure_2) +
   labs(
-    x = "Group Size",
-    y = "Difference (d)",
-    title = "Smoothed Plot of Difference vs. Group Size",
-    subtitle = "Smooth trends showing convergence towards d = 0.5",
-    caption = "Data points are colored based on the category of 'd'. Smooth lines include a confidence interval."
-  ) +
-  theme_minimal()  # Use a minimalistic theme for a clean plot
+    x = "Gruppengröße",
+    y = "Differenzen zwischen den Fragebogenpaaren insgesamt",
+    title = "Analyse der Gruppengröße gegenüber den Differenzen",
+    subtitle = "Unterteilt nach Messvariablen, Ausreißer entfernt"
+  ) 
 
-# Display the plot
+# Grafik anzeigen
 print(plot)
 
+ggsave("plot_of_difference_vs_group_size_filtered.png", plot, width = 10, height = 8, dpi = 300)
 
 ```
 
@@ -239,23 +226,14 @@ Es ist ein Mixed model weil wir von festen und von random effects (pro Studie un
 
 
 ```{r, echo=FALSE}
-#install.packages("lme4")
-#install.packages("lmerTest")
-#install.packages("Matrix")
-
 library(lme4)
 library(sjPlot)
 
-# Erstelle das Intercept-Only-Modell
 interceptonlymodel <- lmer(formula = d ~ 1 + (1|Study),
                            weights = groupsize,
                            data = results3)
 
-# Zeige die Zusammenfassung des Modells an
 summary(interceptonlymodel)
-
-# Plotte das Modell
-#plot_model(model = interceptonlymodel, type = 'pred', terms = 'Study')
 
 
 ```
