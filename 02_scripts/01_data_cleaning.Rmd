@@ -11,7 +11,7 @@ date: "2024-01-10"
 #install.packages("openxlsx")
 #install.packages("dplyr")
 #install.packages("ggplot2")
-
+setwd("~/Library/Mobile Documents/com~apple~CloudDocs/Documents/2023/CPCOR/Git/MetaanalysisCommonMetrics/02_scripts")
 library(openxlsx)
 library(tidyr)
 library(readxl)

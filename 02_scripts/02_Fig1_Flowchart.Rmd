@@ -3,143 +3,32 @@ title: "02_Fig1_Flowchart"
 output: html_document
 date: "2024-01-11"
 ---
-# PRISMA mit fertiger Funktion -> nicht sinnvoll
+# PRISMA 
 ```{r }
-
-#install.packages("PRISMAstatement")
-library(PRISMAstatement)
-
-prisma(2626, 0, 2626, 1911, 1827, 84, 3, 81, 81)
-
-#prisma_graph(2626, 0, 2626, 1911, 1827, 84, 3, 81, 81)
-
-#HADS_PROMIS n= 21, screen 21, incl 0
-#BDI_HADS n= 841, screen 288, incl 10
-#HADS_PHQ n=381, screen 381, incl 19
-#PHQ_PROMIS n= 72, screen 72, incl 6
-#BDI_PROMIS n= 26, screen 26, incl 0
-#CESD_PROMIS n= 33, screen 33, incl 0
-#CESD_PHQ n= 188, screen 188, incl 9
-#CESD_HADS n=317, screen 317, incl 11
-#BDI_PHQ n=392, screen 230, incl 19
-#BDI_CESD n=355, screen 355, incl 7
-
-#2626 gesamt
-#1911 gescreened 
-# 3 exkludiert noch zB BDI und PROMIS weil nur eine Studie da 
-#incl gesamt 81
-
-
-
-
-# Install and load the DiagrammeR package
 if (!require(DiagrammeR)) install.packages("DiagrammeR")
 library(DiagrammeR)
 
-# Create the flowchart
+# Create the flowchart with a minimalistic design
 flowchart <- grViz("
 digraph flowchart {
-  node [shape = box]
-  start [label = 'Start Search']
-  step1 [label = 'Define Search Terms for Each Scale']
-  step2 [label = 'Combine Terms with OR']
-  step3 [label = 'Combine Results with AND']
-  step4 [label = 'Limit Results to English or German']
-  step5 [label = 'Perform Combinations of Scales']
-  end [label = 'End Search']
+  graph [bgcolor = white, layout = dot, rankdir = TB]
 
-  start -> step1 -> step2 -> step3 -> step4 -> step5 -> end
+  node [shape = box, style = filled, color = black, fillcolor = white, fontname = Helvetica, fontsize = 12]
+  edge [color = black, arrowhead = normal]
+
+  start [label = 'Screened (2626 studies). Stopped after 20 for each questionnaire combination.']
+  step1 [label = 'Unique studies after duplicates removed (1911 studies)']
+  step2 [label = 'Descriptive analysis (87 studies)']
+  end [label = 'Included in meta-analysis (84 studies)']
+
+  start -> step1 -> step2 -> end
 }
 ")
 
 # Render the flowchart
 flowchart
 
-```
-
-
-# PRISMA flowchart
-```{r }
-#install.packages("Gmisc")
-#install.packages("glue")
-#install.packages("htmlTable")
-#install.packages("grid")
-#install.packages("magrittr")
-
-
-library(Gmisc, quietly = TRUE)
-library(glue)
-library(htmlTable)
-library(grid)
-library(magrittr)
-
-org_cohort <- boxGrob(glue("Records identified through database searching (Medline (Ovid) and Embase",
-                           "n = {pop}",
-                           pop = txtInt(2626),
-                           .sep = "\n"))
-eligible <- boxGrob(glue("eligible",
-                          "n = {pop}",
-                           pop = txtInt(1911),
-                           .sep = "\n"))
-included <- boxGrob(glue("included after power analysis",
-                         "n = {incl}",
-                         incl = txtInt(87),
-                         .sep = "\n"))
-grp_a <- boxGrob(glue("Inlcuded in Metaanlysis",
-                      "n = {recr}",
-                      recr = txtInt(84),
-                      .sep = "\n"))
-
-grp_b <- boxGrob(glue("Excluded",
-                      "n = {recr}",
-                      recr = txtInt(3),
-                      .sep = "\n"))
-
-excluded <- boxGrob(glue("Excluded (n = {tot}):",
-                       #  " - not two depression measures included: {nottwo}",
-                       #  " - not assessed at the same time: {time}",
-                       #  " - not assessed in the same sample: {sample}",
-                       #  " - not referring to current depression severity: {severity}",
-                       #  " - not employed as self-reports: {notselfreports}",
-                       #  " - publication not in English/German: {language}",
-                         tot = 1827,
-                         nottwo = 99,
-                         time = 99,
-                         sample = 99,
-                         severity = 99,
-                         notselfreports = 99,
-                         language = 99,
-                         .sep = "\n"),
-                    just = "left")
-
-grid.newpage()
-vert <- spreadVertical(org_cohort,
-                       eligible = eligible,
-                       included = included,
-                       grps = grp_a)
-grps <- alignVertical(reference = vert$grps,
-                      grp_a, grp_b) %>%
-  spreadHorizontal()
-vert$grps <- NULL
-
-excluded <- moveBox(excluded,
-                    x = 0.8,
-                    y = coords(vert$included)$top + distance(vert$eligible, vert$included, half = TRUE, center = FALSE))
-
-for (i in 1:(length(vert) - 1)) {
-  connectGrob(vert[[i]], vert[[i + 1]], type = "vert") %>%
-    print
-}
-connectGrob(vert$included, grps[[1]], type = "N")
-connectGrob(vert$included, grps[[2]], type = "N")
-
-connectGrob(vert$eligible, excluded, type = "L")
-
-# Print boxes
-vert
-grps
-excluded
-
-# save in results
 
 ```
+
+

@@ -362,7 +362,6 @@ result_df_mean <- result_df_mean %>%
 ```
 
 
-
 # Table 1 erstellen aus den oben gesammelten Informationen
 
 Alternativ: mit Tabelle Datenextraktion - komplett_Mia2 rechnen
@@ -513,7 +512,7 @@ table1$amount[9] <- paste(amount_multi, " (", percent_multi, ")", sep = "")
 
 
 
-
+result_df_country$Value
 ```
 
 

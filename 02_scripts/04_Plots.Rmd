@@ -29,8 +29,9 @@ SUBSET_PROMIS <- read.xlsx(file_path) %>% unique()
 
 ```
 
+# Datensätze erstellen (Felix)
 
-## In drei Schritten results Liste mit "Study", "Variable", "measure_1", "measure_2", "value_1", "value_2", "groupsize" aus allen Fragebogenkombinationen erstellen
+In drei Schritten results Liste mit "Study", "Variable", "measure_1", "measure_2", "value_1", "value_2", "groupsize" aus allen Fragebogenkombinationen erstellen
 
 ```{r, echo=FALSE}
 library(Hmisc)
@@ -67,7 +68,8 @@ results[[x]][, c("Study", "Variable", "measure_1", "measure_2", "value_1", "valu
 
 str(results2)
 results3 = bind_rows(results2)
-library(ggplot2)
+
+
 results3$groupsize = as.numeric(results3$groupsize)
 
 
@@ -76,9 +78,24 @@ results3$groupsize = as.numeric(results3$groupsize)
 ## plots
 
 ```{r, echo=FALSE}
+library(ggplot2)
 
-ggplot(results3, aes(x = value_1, value_2)) + geom_point() + facet_grid(measure_1 ~ measure_2) + geom_abline() + geom_smooth()
-ggplot(results3, aes(x = value_1, value_2)) + geom_point(aes(size = groupsize)) + facet_grid(measure_1 ~ measure_2) + geom_abline() 
+ggplot(results3, aes(x = value_1, value_2)) + geom_point() + facet_grid(measure_1 ~ measure_2) + geom_abline() + geom_smooth() + theme_minimal()
+
+comp<- ggplot(results3, aes(x = value_1, y = value_2)) + 
+  geom_point(aes(size = groupsize)) + 
+  facet_grid(measure_1 ~ measure_2) + 
+  geom_abline(intercept = 0, slope = 1, color = "black") + 
+  theme_minimal() +
+  labs(
+    title = "Comparison of Values across Different Measures",  # Add a title
+    subtitle = "Size of points reflects group size",  # Add a subtitle
+    x = "Value 1 (Unit)",  # Descriptive x-axis label
+    y = "Value 2 (Unit)",  # Descriptive y-axis label
+    size = "Group Size"  # Label for the size legend
+  ) 
+
+
 
 results3$m = (results3$value_1 + results3$value_2)/2
 results3$d = (results3$value_1 - results3$value_2)
@@ -90,24 +107,110 @@ results4 = results3 %>% group_by(measure_1, measure_2) %>% summarise(mean1 = mea
                                                                      lo = mean1-1.96*sd, hi = mean1+1.96*sd,
                                                                      wtd_lo = wgt_mean-1.96*wtd_sd, wtd_hi = wgt_mean+1.96*wtd_sd)
 
-ggplot(results3, aes(x = m, y = d)) + geom_point()+ facet_grid(measure_1 ~ measure_2) + 
-  geom_hline(data = results4, aes(yintercept = mean1)) + 
-  geom_hline(data = results4, aes(yintercept = lo), linetype = 2) +
-  geom_hline(data = results4, aes(yintercept = hi), linetype = 2) +
-  geom_text(data = results4, aes(x = 30, y = mean1, label = sprintf("%.1f", mean1)), vjust = -.2) +
-  geom_text(data = results4, aes(x = 30, y = lo, label = sprintf("%.1f", lo)), vjust = -.2) +
-  geom_text(data = results4, aes(x = 30, y = hi, label = sprintf("%.1f", hi)), vjust = -.2) +
-  coord_cartesian(xlim = c(20,80)) +
-  labs(title = "Unweighted")
+# Filter out rows with missing or out-of-range values
+results4_filtered <- results4 %>%
+  filter(!is.na(mean1) & mean1 >= -20 & mean1 <= 20,
+         !is.na(lo) & lo >= -20 & lo <= 20,
+         !is.na(hi) & hi >= -20 & hi <= 20)
 
-ggplot(results3, aes(x = m, y = d)) + geom_point()+ facet_grid(measure_1 ~ measure_2) + 
-  geom_hline(data = results4, aes(yintercept = wgt_mean)) + 
-  geom_hline(data = results4, aes(yintercept = wtd_lo), linetype = 2) +
-  geom_hline(data = results4, aes(yintercept = wtd_hi), linetype = 2) +
-  labs(title = "Weighted") 
+weighted_d <- ggplot(results3, aes(x = m, y = d)) + 
+  geom_point() + 
+  facet_grid(measure_1 ~ measure_2) + 
+  geom_hline(data = results4_filtered, aes(yintercept = mean1)) + 
+  geom_hline(data = results4_filtered, aes(yintercept = lo), linetype = 2) +
+  geom_hline(data = results4_filtered, aes(yintercept = hi), linetype = 2) +
+  geom_text(data = results4_filtered, aes(x = 30, y = mean1, label = sprintf("%.1f", mean1)), 
+            vjust = -.2, size = 3.5) +  
+  geom_text(data = results4_filtered, aes(x = 30, y = lo, label = sprintf("%.1f", lo)), 
+            vjust = -.2, size = 3.5) +  
+  geom_text(data = results4_filtered, aes(x = 30, y = hi, label = sprintf("%.1f", hi)), 
+            vjust = -.2, size = 3.5) + 
+  coord_cartesian(xlim = c(20, 80), ylim = c(-20, 20)) +  
+  labs(title = "Mean and Limits of Agreement") +
+  theme_minimal() +
+  theme(strip.text.y = element_text(angle = 0))
+
+
 
 
 ```
+
+## plots mit Farbe
+```{r, echo=FALSE}
+library(viridis)
+
+results3$groupsize = as.numeric(results3$groupsize)
+
+ggplot(results3, aes(x = value_1, y = value_2, color = groupsize)) + 
+  geom_point() + 
+  facet_grid(measure_1 ~ measure_2) + 
+  geom_abline() + 
+  geom_smooth() + 
+  scale_color_viridis_c(option = "D") + # nice viridis color scale
+  theme_minimal()
+
+# Plot with point size based on groupsize
+ggplot(results3, aes(x = value_1, y = value_2)) + 
+  geom_point(aes(size = groupsize)) + 
+  facet_grid(measure_1 ~ measure_2) + 
+  geom_abline() + 
+  theme_minimal()
+
+results3$m = (results3$value_1 + results3$value_2) / 2
+results3$d = (results3$value_1 - results3$value_2)
+
+ggplot(results3, aes(x = m, y = d, color = d)) + 
+  geom_point() + 
+  facet_grid(measure_1 ~ measure_2) + 
+  scale_color_viridis_c(option = "D") + 
+  theme_minimal()
+
+results4 = results3 %>% group_by(measure_1, measure_2) %>% summarise(
+  mean1 = mean(d), 
+  wgt_mean = wtd.mean(d, w = groupsize, na.rm = TRUE),
+  sd = sd(d), 
+  wtd_sd = sqrt(wtd.var(d, w = groupsize)),
+  lo = mean1 - 1.96 * sd, 
+  hi = mean1 + 1.96 * sd,
+  wtd_lo = wgt_mean - 1.96 * wtd_sd, 
+  wtd_hi = wgt_mean + 1.96 * wtd_sd
+)
+
+# Unweighted plot
+Unweighted <- ggplot(results3, aes(x = m, y = d, color = d)) + 
+  geom_point() + 
+  facet_grid(measure_1 ~ measure_2) + 
+  geom_hline(data = results4, aes(yintercept = mean1)) + 
+  geom_hline(data = results4, aes(yintercept = lo), linetype = 2) +
+  geom_hline(data = results4, aes(yintercept = hi), linetype = 2) +
+  geom_text(data = results4, aes(x = 30, y = mean1, label = sprintf("%.1f", mean1)), vjust = -0.2, color = "black") +
+  geom_text(data = results4, aes(x = 30, y = lo, label = sprintf("%.1f", lo)), vjust = -0.2, color = "black") +
+  geom_text(data = results4, aes(x = 30, y = hi, label = sprintf("%.1f", hi)), vjust = -0.2, color = "black") +
+  coord_cartesian(xlim = c(20, 80)) +
+  labs(title = "Mean and Limits of Agreement") + 
+  scale_color_viridis_c(option = "D") + 
+  theme_minimal()
+
+
+# Weighted plot
+Weighted <- ggplot(results3, aes(x = m, y = d, color = d)) + 
+  geom_point() + 
+  facet_grid(measure_1 ~ measure_2) + 
+  geom_hline(data = results4, aes(yintercept = wgt_mean)) + 
+  geom_hline(data = results4, aes(yintercept = wtd_lo), linetype = 2) +
+  geom_hline(data = results4, aes(yintercept = wtd_hi), linetype = 2) +
+  geom_text(data = results4, aes(x = 30, y = wgt_mean, label = sprintf("%.1f", wgt_mean)), vjust = -0.2, color = "black") +
+  geom_text(data = results4, aes(x = 30, y = wtd_lo, label = sprintf("%.1f", wtd_lo)), vjust = -0.2, color = "black") +
+  geom_text(data = results4, aes(x = 30, y = wtd_hi, label = sprintf("%.1f", wtd_hi)), vjust = -0.2, color = "black") +
+  coord_cartesian(xlim = c(20, 80)) +
+  labs(title = "Weighted Mean and Limits of Agreement") + 
+  scale_color_viridis_c(option = "D") + 
+  theme_minimal()
+
+
+
+```
+
 
 # lineare gemischte Modelle 
 ```{r, echo=FALSE}
@@ -121,7 +224,7 @@ interceptonlymodel <- lmer(formula = d ~ 1 + (1|Study), weights = groupsize, dat
 summary(interceptonlymodel)
 emmeans(interceptonlymodel, ~1)
 
- 
+
 ```
 
 ## Hinzufügen eines Level-1 Prädiktors
@@ -154,27 +257,22 @@ anova(questionnairemodel, interceptonlymodel)
 
 ## Scatterplots einzeln über alle Fragebogenkombinationen
 ```{r }
-
-
 library(ggplot2)
 
+# Adjust the plot code
 plot <- ggplot(results3, aes(x = groupsize, y = d)) +
   geom_point() +  # Add points to visualize individual observations
-  geom_smooth(data = subset(results3, d > 0), method = "loess", se = FALSE, color = "blue") + 
-  geom_smooth(data = subset(results3, d < 0), method = "loess", se = FALSE, color = "red") + 
+  geom_smooth(method = "loess", se = FALSE, color = "blue") + 
   geom_ribbon(aes(ymin = -1, ymax = 1, xmin = 0, xmax = 1000), fill = "grey", alpha = .2) +  
   labs(
-    x = "Gruppengröße",
-    y = "Differenzen zwischen den Fragebogenpaaren insgesamt",
+    x = "Group Site",
+    y = "Differences between questionnaires",
     title = "Plot of Difference vs. Group Size"  ) +
-  theme_minimal()  
+  theme_minimal()  +
+  scale_color_viridis_c(option = "D")
 
 # Display the plot
 print(plot)
-
-ggsave("plot_of_difference_vs_group_size.png", plot, width = 10, height = 8, dpi = 300)
-
-
 
 
 library(ggplot2)
@@ -182,24 +280,24 @@ library(ggplot2)
 # Daten filtern, um Ausreißer zu entfernen, deren Gruppengröße über 2000 liegt
 results3_filtered <- subset(results3, groupsize <= 2000)
 
-# Grafik erstellen mit den gefilterten Daten
 plot <- ggplot(results3_filtered, aes(x = groupsize, y = d)) +
-  geom_point() +  # Punkte hinzufügen, um einzelne Beobachtungen zu visualisieren
-  geom_smooth(data = subset(results3_filtered, d > 0), method = "loess", se = FALSE, color = "blue") +
-  geom_smooth(data = subset(results3_filtered, d < 0), method = "loess", se = FALSE, color = "red") +
-  geom_ribbon(aes(ymin = -1, ymax = 1, xmin = 0, xmax = 1000), fill = "grey", alpha = .2) +
+  geom_point(size = 1) +  # Add points to visualize individual observations, smaller size
+  geom_smooth(method = "loess", se = FALSE, color = "blue", size = 0.5) +  # Add a smooth line only, thinner line
+  geom_ribbon(aes(x = groupsize, ymin = -1, ymax = 1), fill = "grey", alpha = .2) +
   facet_grid(measure_1 ~ measure_2) +
+  scale_x_continuous(limits = c(0, 1500)) +  # Set x-axis limits from 0 to 1500
   labs(
-    x = "Gruppengröße",
-    y = "Differenzen zwischen den Fragebogenpaaren insgesamt",
-    title = "Analyse der Gruppengröße gegenüber den Differenzen",
-    subtitle = "Unterteilt nach Messvariablen, Ausreißer entfernt"
-  ) 
+    x = "Group Size",
+    y = "Differences Between Questionnaire Pairs",
+    title = "Analysis of Group Size vs. Differences",
+    subtitle = "Faceted by Measurement Variables, Outliers Removed"
+  ) +
+  theme_minimal()
 
 # Grafik anzeigen
 print(plot)
 
-ggsave("plot_of_difference_vs_group_size_filtered.png", plot, width = 10, height = 8, dpi = 300)
+
 
 ```
 
@@ -218,7 +316,7 @@ summary(d)
 sd(d)
 ```
 
-## linear mixed model estimates
+# linear mixed model estimates
 
 Wir möchten die Differenz i in Gruppe j aufteilen in Anteile, die auf Unterschiede der jeweiligen Fragebogenkombination j zurückgehen und Unterschiede die auch innerhalb der Fragebogenkombination noch zwischen einzelnen Studien i bestehen. 
 
@@ -238,7 +336,7 @@ summary(interceptonlymodel)
 
 ```
 
-### Hinzufügen eines Level-1 Prädiktors
+## Hinzufügen eines Level-1 Prädiktors
 Wir wollen herausfinden, woran es liegen könnte, dass die Studien unterschiedliche Differenzen haben.
 
 Hypothese 1: Die Differenz hängt mit der Fragebogenkombination zusammen.
@@ -271,6 +369,7 @@ anova_result <- aov(d ~ questionnaire_pair, data = results3)
 summary(anova_result)
 
 ```
+
 # Forest plot 
 
 ```{r, echo=FALSE}
@@ -317,22 +416,23 @@ plot <- ggplot(data, aes(x = Estimate, y = Comparison)) +
     y = "Comparison",
     caption = "Error bars represent 95% confidence intervals"
   ) +
-  theme(
-    plot.title = element_text(size = 16, face = "bold"),
-    plot.subtitle = element_text(size = 14),
-    axis.title = element_text(size = 12),
-    axis.text = element_text(size = 10)
-  )
+  theme_minimal()
 
 
-# Define the file path
-file_path <- "../04_results/forest_plot.png"
 
-# Save the plot
-ggsave(file_path, plot, width = 10, height = 8)
-
-plot
-
+plot2 <- ggplot(results3, aes(x = groupsize, y = d)) +
+  geom_point() +  # Add points to visualize individual observations
+  geom_smooth(method = "loess", se = FALSE, color = "blue") + 
+  geom_ribbon(aes(ymin = -1, ymax = 1, xmin = 0, xmax = 1000), fill = "grey", alpha = .2) +  
+  labs(
+    x = "Gruppengröße",
+    y = "Differenzen zwischen den Fragebogenpaaren insgesamt",
+    title = "Plot of Difference vs. Group Size"
+  ) +
+  scale_x_log10() +  # Set x-axis to logarithmic scale
+  coord_cartesian(ylim = c(-20, 20)) +  # Limit y-axis from -20 to +20
+  theme_minimal() +
+  scale_color_viridis_c(option = "D")
 
 
 

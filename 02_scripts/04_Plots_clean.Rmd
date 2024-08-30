@@ -1,0 +1,264 @@
+---
+title: "04_Plots_cleaned"
+output: html_document
+date: "2024-08-30"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# load data
+```{r, echo=FALSE}
+
+
+library(readxl)
+library(dplyr)
+library(openxlsx)
+
+file_path <- "../01_data/SUBSET_BDI.xlsx"
+SUBSET_BDI <- read.xlsx(file_path)  %>% unique()
+
+file_path <- "../01_data/SUBSET_CESD.xlsx"
+SUBSET_CESD <- read.xlsx(file_path) %>% unique()
+
+file_path <- "../01_data/SUBSET_HADS.xlsx"
+SUBSET_HADS <- read.xlsx(file_path) %>% unique()
+
+file_path <- "../01_data/SUBSET_PHQ.xlsx"
+SUBSET_PHQ <- read.xlsx(file_path) %>% unique()
+
+file_path <- "../01_data/SUBSET_PROMIS.xlsx"
+SUBSET_PROMIS <- read.xlsx(file_path) %>% unique()
+
+```
+
+# Datensätze erstellen (Felix)
+
+In drei Schritten results Liste mit "Study", "Variable", "measure_1", "measure_2", "value_1", "value_2", "groupsize" aus allen Fragebogenkombinationen erstellen
+
+```{r, echo=FALSE}
+library(Hmisc)
+
+BDIxCESD = inner_join(SUBSET_BDI, SUBSET_CESD, by = c("Study", "Variable")) %>% unique()
+BDIxHADS <- inner_join(SUBSET_BDI, SUBSET_HADS, by = c("Study", "Variable")) %>%unique()
+BDIxPHQ <- inner_join(SUBSET_BDI, SUBSET_PHQ, by = c("Study", "Variable")) %>%unique()
+BDIxPROMIS <- inner_join(SUBSET_BDI, SUBSET_PROMIS, by = c("Study", "Variable")) %>%unique()
+CESDxHADS <- inner_join(SUBSET_CESD, SUBSET_HADS, by = c("Study", "Variable")) %>%unique()
+CESDxPHQ <- inner_join(SUBSET_CESD, SUBSET_PHQ, by = c("Study", "Variable")) %>%unique()
+CESDxPROMIS <- inner_join(SUBSET_CESD, SUBSET_PROMIS, by = c("Study", "Variable")) %>%unique()
+HADSxPHQ <- inner_join(SUBSET_HADS, SUBSET_PHQ, by = c("Study", "Variable")) %>%unique()
+HADSxPROMIS <- inner_join(SUBSET_HADS, SUBSET_PROMIS, by = c("Study", "Variable")) %>%unique()
+PHQxPROMIS <- inner_join(SUBSET_PHQ, SUBSET_PROMIS, by = c("Study", "Variable"))%>%unique()
+
+
+results = list(BDIxCESD, BDIxHADS, BDIxPHQ, 
+BDIxPROMIS, CESDxHADS, CESDxPHQ, CESDxPROMIS, HADSxPHQ, 
+HADSxPROMIS, PHQxPROMIS)
+names(results) =  c("BDIxCESD", "BDIxHADS", "BDIxPHQ", 
+"BDIxPROMIS", "CESDxHADS", "CESDxPHQ", "CESDxPROMIS", "HADSxPHQ", 
+"HADSxPROMIS", "PHQxPROMIS")
+
+results$BDIxPROMIS$PROMIS_PROMIS.Skala = results$BDIxPROMIS$PROMIS
+
+results2 = lapply(names(results), function(x){
+results[[x]]$measure_1 = strsplit(x, "x")[[1]][1]
+results[[x]]$measure_2 = strsplit(x, "x")[[1]][2]
+results[[x]]$value_1 = results[[x]][, grep("PROMIS", names(results[[x]]))[1]]
+results[[x]]$value_2 =  results[[x]][, grep("PROMIS", names(results[[x]]))[2]]
+results[[x]]$groupsize = results[[x]][,"groupsize.x"]
+results[[x]][, c("Study", "Variable", "measure_1", "measure_2", "value_1", "value_2", "groupsize")]
+})
+
+str(results2)
+results3 = bind_rows(results2)
+
+
+results3$groupsize = as.numeric(results3$groupsize)
+
+
+```
+
+
+
+# Scatterplot
+```{r, echo=FALSE}
+library(ggplot2)
+
+
+ggplot(results3, aes(x = value_1, value_2)) + geom_point() + facet_grid(measure_1 ~ measure_2) + geom_abline() + geom_smooth() + theme_minimal()
+
+Scatterplot<- ggplot(results3, aes(x = value_1, y = value_2)) + 
+  geom_point(aes(size = groupsize)) + 
+  facet_grid(measure_1 ~ measure_2) + 
+  geom_abline(intercept = 0, slope = 1, color = "black") + 
+  theme_minimal() +
+  labs(
+    title = "Comparison of Values across Different Measures",  # Add a title
+    subtitle = "Size of points reflects group size",  # Add a subtitle
+    x = "Value 1 (Unit)",  # Descriptive x-axis label
+    y = "Value 2 (Unit)",  # Descriptive y-axis label
+    size = "Group Size"  # Label for the size legend
+  ) 
+
+Scatterplot
+
+ggsave("/Scatterplot.png", plot = Scatterplot, width = 10, height = 8, dpi = 300)
+```
+
+
+# Mean und limits of Agreementüber 
+```{r, echo=FALSE}
+results3$m = (results3$value_1 + results3$value_2)/2
+results3$d = (results3$value_1 - results3$value_2)
+
+ggplot(results3, aes(x = m, y = d)) + geom_point()+ facet_grid(measure_1 ~ measure_2)
+
+results4 = results3 %>% group_by(measure_1, measure_2) %>% summarise(mean1 = mean(d), wgt_mean = wtd.mean(d, w = groupsize, na.rm = T),
+                                                                     sd = sd(d), wtd_sd = sqrt(wtd.var(d, w = groupsize)),
+                                                                     lo = mean1-1.96*sd, hi = mean1+1.96*sd,
+                                                                     wtd_lo = wgt_mean-1.96*wtd_sd, wtd_hi = wgt_mean+1.96*wtd_sd)
+
+# Filter out rows with missing or out-of-range values
+results4_filtered <- results4 %>%
+  filter(!is.na(mean1) & mean1 >= -20 & mean1 <= 20,
+         !is.na(lo) & lo >= -20 & lo <= 20,
+         !is.na(hi) & hi >= -20 & hi <= 20)
+
+
+
+# Unweighted plot
+Unweighted <- ggplot(results3, aes(x = m, y = d, color = d)) + 
+  geom_point() + 
+  facet_grid(measure_1 ~ measure_2) + 
+  geom_hline(data = results4, aes(yintercept = mean1)) + 
+  geom_hline(data = results4, aes(yintercept = lo), linetype = 2) +
+  geom_hline(data = results4, aes(yintercept = hi), linetype = 2) +
+  geom_text(data = results4, aes(x = 30, y = mean1, label = sprintf("%.1f", mean1)), vjust = -0.2, color = "black") +
+  geom_text(data = results4, aes(x = 30, y = lo, label = sprintf("%.1f", lo)), vjust = -0.2, color = "black") +
+  geom_text(data = results4, aes(x = 30, y = hi, label = sprintf("%.1f", hi)), vjust = -0.2, color = "black") +
+  coord_cartesian(xlim = c(20, 80)) +
+  labs(title = "Mean and Limits of Agreement") + 
+  scale_color_viridis_c(option = "D") + 
+  theme_minimal()
+Unweighted
+
+ggsave("/Unweighted.png", plot = Unweighted, width = 10, height = 8, dpi = 300)
+
+
+# Weighted plot
+Weighted <- ggplot(results3, aes(x = m, y = d, color = d)) + 
+  geom_point() + 
+  facet_grid(measure_1 ~ measure_2) + 
+  geom_hline(data = results4, aes(yintercept = wgt_mean)) + 
+  geom_hline(data = results4, aes(yintercept = wtd_lo), linetype = 2) +
+  geom_hline(data = results4, aes(yintercept = wtd_hi), linetype = 2) +
+  geom_text(data = results4, aes(x = 30, y = wgt_mean, label = sprintf("%.1f", wgt_mean)), vjust = -0.2, color = "black") +
+  geom_text(data = results4, aes(x = 30, y = wtd_lo, label = sprintf("%.1f", wtd_lo)), vjust = -0.2, color = "black") +
+  geom_text(data = results4, aes(x = 30, y = wtd_hi, label = sprintf("%.1f", wtd_hi)), vjust = -0.2, color = "black") +
+  coord_cartesian(xlim = c(20, 80)) +
+  labs(title = "Weighted Mean and Limits of Agreement") + 
+  scale_color_viridis_c(option = "D") + 
+  theme_minimal()
+Weighted
+
+ggsave("/Weighted.png", plot = Weighted, width = 10, height = 8, dpi = 300)
+```
+
+
+# Difference vs. Group size 
+```{r, echo=FALSE}
+d_groupsize <- ggplot(results3, aes(x = groupsize, y = d)) +
+  geom_point() +  # Add points to visualize individual observations
+  geom_smooth(method = "loess", se = FALSE, color = "blue") + 
+  geom_ribbon(aes(ymin = -1, ymax = 1, xmin = 0, xmax = 1000), fill = "grey", alpha = .2) +  
+  labs(
+    x = "Gruppengröße",
+    y = "Differenzen zwischen den Fragebogenpaaren insgesamt",
+    title = "Plot of Difference vs. Group Size"
+  ) +
+  scale_x_log10() +  # Set x-axis to logarithmic scale
+  coord_cartesian(ylim = c(-20, 20)) +  # Limit y-axis from -20 to +20
+  theme_minimal() +
+  scale_color_viridis_c(option = "D")
+d_groupsize
+
+ggsave("/d_groupsize.png", plot = d_groupsize, width = 10, height = 8, dpi = 300)
+
+```
+
+# Difference vs. Group size facets
+```{r, echo=FALSE}
+# Daten filtern, um Ausreißer zu entfernen, deren Gruppengröße über 2000 liegt
+results3_filtered <- subset(results3, groupsize <= 2000)
+
+d_groupsize_facet <- ggplot(results3_filtered, aes(x = groupsize, y = d)) +
+  geom_point(size = 1) +  # Add points to visualize individual observations, smaller size
+  geom_smooth(method = "loess", se = FALSE, color = "blue", size = 0.5) +  # Add a smooth line only, thinner line
+  geom_ribbon(aes(x = groupsize, ymin = -1, ymax = 1), fill = "grey", alpha = .2) +
+  facet_grid(measure_1 ~ measure_2) +
+  scale_x_continuous(limits = c(0, 1500)) +  # Set x-axis limits from 0 to 1500
+  labs(
+    x = "Group Size",
+    y = "Differences Between Questionnaire Pairs",
+    title = "Analysis of Group Size vs. Differences",
+    subtitle = "Faceted by Measurement Variables, Outliers Removed"
+  ) +
+  theme_minimal()
+
+d_groupsize_facet
+
+# Grafik speichern
+ggsave("/d_groupsize_facet.png", d_groupsize_facet, width = 10, height = 8, dpi = 300)
+
+```
+
+# Forest Plot
+```{r, echo=FALSE}
+library(gt)
+library(patchwork)
+
+data <- data.frame(
+  Comparison = c("BDI x CESD (7 studies)", "BDI x HADS (9 studies)", "BDI x PHQ (20 studies)", "BDI x PROMIS (1 study)",
+                 "CESD x HADS (14 studies)", "CESD x PHQ (9 studies)", "CESD x PROMIS (1 study)",
+                 "HADS x PHQ (19 studies)", "HADS x PROMIS (1 study)", "PHQ x PROMIS (6 studies)"),
+  Estimate = c(-2.97582, 1.52532, -0.78826, 1.79057, 2.85519,
+               1.46963, 5.45416, -2.47907, -2.65198, 5.30093),
+  Std.Error = c(1.31949, 0.97459, 0.68534, 2.98016, 0.82313,
+                0.89610, 1.29958, 0.70739, 3.06720, 1.03198),
+  lower = c(-5.59149, -0.40445, -2.15921, -4.21102, 1.20904,
+            -0.32298, 2.89030, -3.89421, -8.80756, 3.25347),
+  upper = c(-0.36015, 3.45508, 0.58269, 7.79216, 4.50134,
+            3.26224, 8.01801, -1.06393, 3.50360, 7.34839),
+  p.value = c(0.0261462, 0.1202153, 0.2546478, 0.5509542,
+               0.0009684, 0.1062524, 4.193e-05, 0.0008742, 0.3912369, 1.388e-06)
+)
+
+
+data <- data[order(data$Estimate), ]
+
+# Forest plot
+forestplot <- ggplot(data, aes(x = Estimate, y = Comparison)) +
+  geom_point(size = 3) +
+  geom_errorbarh(aes(xmin = lower, xmax = upper), height = 0.2) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey") +
+  scale_x_continuous(limits = c(-10, 10)) +
+  theme_minimal() +
+  labs(
+    title = "Forest Plot",
+    subtitle = "Comparison of Questionnaires",
+    x = "Estimate",
+    y = "Comparison",
+    caption = "Error bars represent 95% confidence intervals"
+  ) +
+  theme_minimal()
+
+forestplot
+
+# Grafik speichern
+ggsave("/forestplot.png", forestplot, width = 10, height = 8, dpi = 300)
+
+
+
+```
