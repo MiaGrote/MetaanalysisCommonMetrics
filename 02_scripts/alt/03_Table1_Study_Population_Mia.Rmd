@@ -317,7 +317,6 @@ result_df_groupsWithinStudy <- dplyr::bind_rows(result_list)
 
 
 ### Depression: "wieviele Pat hatten einen PROMIS score von über 60?"
-#### Dat short ist falsch..
 ```{r, echo=FALSE}
 library(here)
 setwd(here())
@@ -357,9 +356,160 @@ se_mean <- sd(result_df_mean$Value, na.rm = TRUE) / sqrt(sum(!is.na(result_df_me
 
 result_df_mean <- result_df_mean %>%
   mutate(Depression_Status = ifelse(Value > 60, "depressed", "not depressed"))
+```
+
+
+# Datensätze joinen
+```{r, echo=FALSE}
+
+result_df_age <- result_df_age %>%
+  group_by(Study) %>% 
+  summarise(Value = mean(as.numeric(Value), na.rm = TRUE))  %>%
+  rename(age = Value)
+
+result_df_country <- result_df_country %>%
+  distinct(Study, Value) %>%
+  rename(country = Value)
+
+result_df_gender <- result_df_gender %>%
+  group_by(Study) %>% 
+  summarise(Value = mean(as.numeric(Value), na.rm = TRUE)) %>%
+  rename(gender = Value)
+
+#result_df_group <- result_df_group %>%
+#  distinct(Study, Value)
+
+result_df_groupsWithinStudy <- result_df_groupsWithinStudy %>%
+  distinct(Study, Value) %>%
+  rename(groupsWithinStudy = Value)
+
+# Tippfehler aus Datensatz löschen
+
+##result_df_studytype <- result_df_studytype %>%
+#  distinct(Study, Value)
+#result_df_studytype <- result_df_studytype[-c(40, 78), ]  %>%
+#  rename(studytype = Value)
+
+result_df_measurementTimePoints <- result_df_measurementTimePoints %>%
+  distinct(Study, Value) %>%
+  rename(measurementTimePoints = Value)
+
+
+
+table1_df <- result_df_age %>%
+  left_join(result_df_country, by = "Study") %>%
+  left_join(result_df_gender, by = "Study") %>%
+  left_join(result_df_groupsWithinStudy, by = "Study") %>%
+#  left_join(result_df_studytype, by = "Study") %>%
+  left_join(result_df_measurementTimePoints, by = "Study")
+
+library(table1)
+
+label(table1_df$age) <- "Age (years)"
+label(table1_df$measurementTimePoints) <- "Measurement Timepoints within studies"
+label(table1_df$gender) <- "Females in Percent"
+
+table1(~ age + gender + measurementTimePoints, data = table1_df)
+
+
+
+
 
 
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # Table 1 erstellen aus den oben gesammelten Informationen

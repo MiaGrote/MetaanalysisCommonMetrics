@@ -1,0 +1,169 @@
+---
+title: "Table1_clean"
+output: html_document
+date: "2025-03-07"
+---
+
+Variablen, die ich brauche: 
+
+age
+gender
+country
+RTC/Clinical Trial obersational or other
+measurementTimePoints
+groupsWithinStudy
+above sepression cutoff, below depression cutoff
+
+
+
+```{r setup, include=FALSE}
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(here)
+library(purrr)
+
+# Set working directory
+setwd(here())
+
+# Datenpfad
+file_path <- here("01_data", "Datenextraktion - komplett.xlsx")
+
+# Kategorien definieren
+categories <- list(
+  age = "Mean age - gesamt - #",
+  gender = "Sex/gender distribution - female %",
+  country = "Study country/-ies",
+  study_type = "Study type",
+  measurement_time_points = "of measurement time points in study",
+  groups_within_study = "# of groups within study"
+)
+
+# Eingeschlossene Sheets
+sheets <- c("BDI_CESD included only", "BDI_HADS included only", "BDI_PHQ included only",
+            "BDI_PROMIS included only", "CESD_HADS included only", "CESD_PHQ included only",
+            "CESD_PROMIS included only", "PHQ_PROMIS included only", "HADS_PHQ included only", "HADS_PROMIS included only")
+
+# Funktion zum Einlesen & Bereinigen der Daten
+clean_data <- function(sheet, pattern) {
+  data <- read_excel(file_path, sheet = sheet)
+  
+  # Finde Spalten, die dem Muster entsprechen
+  selected_cols <- grep(pattern, names(data), value = TRUE)
+
+  # Falls keine Spalten gefunden wurden → Warnung & leeren Dataframe zurückgeben
+  if (length(selected_cols) == 0) {
+    warning(paste("Keine passenden Spalten für Muster:", pattern, "in Sheet:", sheet))
+    return(data.frame(Study = character(), Variable = character(), Value = character()))
+  }
+
+  # Daten auswählen, konvertieren und transformieren
+  data %>%
+    select(all_of(c("Study", selected_cols))) %>%
+    mutate(across(everything(), as.character)) %>%  
+    pivot_longer(-Study, names_to = "Variable", values_to = "Value") %>%
+    filter(Value != "nicht zutreffend")
+}
+
+# Daten für alle Kategorien und Sheets sammeln
+results <- map(categories, ~ bind_rows(map(sheets, clean_data, .x)))
+
+# Duplikate entfernen
+remove_duplicates <- function(df) df %>% distinct(Study, .keep_all = TRUE)
+results_cleaned <- map(results, remove_duplicates)
+
+# Gemeinsamen Dataframe erstellen
+final_df <- reduce(results_cleaned, full_join, by = "Study")
+
+# Entferne die "Variable.*"-Spalten, falls sie vorhanden sind
+final_df <- final_df %>%
+  select(-matches("^Variable\\."), everything())
+
+# Überprüfen, welche Spalten existieren
+print(names(final_df))
+
+# Spalten umbenennen, aber nur wenn sie existieren
+rename_map <- c(
+  "Value.x" = "Mean Age", 
+  "Value.y" = "Gender Distribution Female %",
+  "Value.x.x" = "Study Country", 
+  "Value.y.y" = "Study Type",
+  "Value.x.x.x" = "Measurement Timepoints", 
+  "Value.y.y.y" = "Groups Within Study"
+)
+
+final_df <- final_df %>%
+  rename_with(~ rename_map[.x], any_of(names(rename_map))) 
+
+# Sicherstellen, dass die relevanten Spalten existieren, bevor `mutate(across(...))` ausgeführt wird
+relevant_columns <- intersect(names(final_df), c("Mean Age", "Gender Distribution Female %", "Measurement Timepoints", "Groups Within Study"))
+
+if (length(relevant_columns) > 0) {
+  final_df <- final_df %>%
+    mutate(across(all_of(relevant_columns), ~ na_if(.x, "nicht berichtet")))  
+}
+
+final_df <- final_df %>%
+  mutate(
+    `Mean Age` = suppressWarnings(as.numeric(`Mean Age`)), # Nicht-numerische Werte in NA umwandeln
+    `Gender Distribution Female %` = ifelse(grepl("^[0-9]+(\\.[0-9]*)?$", `Gender Distribution Female %`), 
+                                            as.numeric(`Gender Distribution Female %`), NA)
+  )
+
+# Funktion zur Kategorisierung der Länder
+categorize_country <- function(country) {
+  europe <- c("Germany", "UK", "France", "Spain", "Italy", "Sweden", "Netherlands", 
+              "Belgium", "Switzerland", "Portugal", "Greece", "Croatia")
+  north_america <- c("USA", "Canada", "Argentinia")
+  asia_pacific <- c("Japan", "China", "India", "Republic of Korea", "South Korea", "Taiwan", 
+                    "Singapore", "Australia")
+
+  # Falls mehrere Länder gelistet sind → ersten Treffer nehmen
+  country_list <- unlist(strsplit(country, ", "))
+  
+  if (any(country_list %in% europe)) {
+    return("Europe")
+  } else if (any(country_list %in% north_america)) {
+    return("North America")
+  } else if (any(country_list %in% asia_pacific)) {
+    return("Asia/Pacific")
+  } else {
+    return("Other")
+  }
+}
+
+# Wende die Funktion auf `Study Country` an
+final_df <- final_df %>%
+  mutate(`Study Country Group` = ifelse(is.na(`Study Country`), NA, 
+                                        sapply(`Study Country`, categorize_country)))
+
+# Funktion zur Gruppierung der Study Types
+group_study_type <- function(study_type) {
+  study_type <- tolower(study_type)  # Um Groß- und Kleinschreibung zu ignorieren
+  if (grepl("observational|cohort", study_type)) {
+    return("Observational Studies")
+  } else if (grepl("interventional|randomized trial|clinical trial", study_type)) {
+    return("Interventional Studies")
+  } else if (grepl("method study", study_type)) {
+    return("Method Studies")
+  } else if (grepl("cross-sectional", study_type)) {
+    return("Cross-sectional Studies")
+  } else if (grepl("validation study", study_type)) {
+    return("Validation Studies")
+  } else {
+    return("Other")  # Für nicht kategorisierte Typen
+  }
+}
+
+# Wende die Gruppierungsfunktion auf die "Study Type"-Spalte an
+final_df <- final_df %>%
+  mutate(`Study Type Group` = sapply(`Study Type`, group_study_type))
+
+# Ergebnis prüfen
+table(final_df$`Study Type Group`)
+
+
+
+
+
+```

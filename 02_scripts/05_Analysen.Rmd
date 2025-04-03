@@ -38,6 +38,8 @@ results3$questionnaire_pair = factor(paste(results3$measure_1, results3$measure_
 questionnairemodel <- lmer(formula = d ~ -1 + questionnaire_pair + (1|Study), weights = groupsize, data = results3)
 summary(questionnairemodel)
 emmeans(questionnairemodel, specs = "questionnaire_pair")
+
+
 ```
 
 # ANOVA
@@ -70,14 +72,16 @@ sd(d)
 
 # linear mixed model estimates
 
-Wir möchten die Differenz i in Gruppe j aufteilen in Anteile, die auf Unterschiede der jeweiligen Fragebogenkombination j zurückgehen und Unterschiede die auch innerhalb der Fragebogenkombination noch zwischen einzelnen Studien i bestehen. 
+Wir möchten die Differenz d in Gruppe aufteilen in Anteile, die auf Unterschiede der jeweiligen Fragebogenkombination zurückgehen und Unterschiede die auch innerhalb der Fragebogenkombination noch zwischen einzelnen Studien bestehen. 
 
 Es ist ein Mixed model weil wir von festen und von random effects (pro Studie unterscheiden sich die Differenzen) ausgehen. 
 
+Ein Intercept-only-Modell wird oft verwendet, um zu bewerten, wie stark die Unterschiede zwischen den Gruppen (hier: Studien) sind. Es erlaubt, die Varianz zwischen den Studien zu quantifizieren.
 
 ```{r, echo=FALSE}
 library(lme4)
 library(sjPlot)
+
 
 interceptonlymodel <- lmer(formula = d ~ 1 + (1|Study),
                            weights = groupsize,
@@ -92,6 +96,7 @@ summary(interceptonlymodel)
 Wir wollen herausfinden, woran es liegen könnte, dass die Studien unterschiedliche Differenzen haben.
 
 Hypothese 1: Die Differenz hängt mit der Fragebogenkombination zusammen.
+
 
 
 ```{r, echo=FALSE}

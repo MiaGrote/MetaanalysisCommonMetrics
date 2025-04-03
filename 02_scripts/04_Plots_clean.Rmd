@@ -8,8 +8,8 @@ date: "2024-08-30"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
 # load data
+
 ```{r, echo=FALSE}
 
 
@@ -80,9 +80,8 @@ results3$groupsize = as.numeric(results3$groupsize)
 
 ```
 
-
-
 # Scatterplot
+
 ```{r, echo=FALSE}
 library(ggplot2)
 
@@ -104,11 +103,11 @@ Scatterplot<- ggplot(results3, aes(x = value_1, y = value_2)) +
 
 Scatterplot
 
-ggsave("/Scatterplot.png", plot = Scatterplot, width = 10, height = 8, dpi = 300)
+ggsave("Scatterplot.png", plot = Scatterplot, width = 10, height = 8, dpi = 300)
 ```
 
+# Mean und limits of Agreement
 
-# Mean und limits of Agreementüber 
 ```{r, echo=FALSE}
 results3$m = (results3$value_1 + results3$value_2)/2
 results3$d = (results3$value_1 - results3$value_2)
@@ -142,9 +141,18 @@ Unweighted <- ggplot(results3, aes(x = m, y = d, color = d)) +
   labs(title = "Mean and Limits of Agreement") + 
   scale_color_viridis_c(option = "D") + 
   theme_minimal()
-Unweighted
+Unweighted +
+  theme(
+    plot.title = element_text(size = 20, face = "bold"),     # Title font size
+    plot.subtitle = element_text(size = 20),                 # Subtitle font size
+    axis.title.x = element_text(size = 16),                  # X-axis title font size
+    axis.title.y = element_text(size = 16),                  # Y-axis title font size
+    axis.text.x = element_text(size = 14),                   # X-axis text font size
+    axis.text.y = element_text(size = 14),                   # Y-axis text font size
+    plot.caption = element_text(size = 12)                   # Caption font size
+  )
 
-ggsave("/Unweighted.png", plot = Unweighted, width = 10, height = 8, dpi = 300)
+ggsave("Unweighted.png", plot = Unweighted, width = 10, height = 8, dpi = 300)
 
 
 # Weighted plot
@@ -160,35 +168,54 @@ Weighted <- ggplot(results3, aes(x = m, y = d, color = d)) +
   coord_cartesian(xlim = c(20, 80)) +
   labs(title = "Weighted Mean and Limits of Agreement") + 
   scale_color_viridis_c(option = "D") + 
-  theme_minimal()
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 20, face = "bold"),     # Title font size
+    plot.subtitle = element_text(size = 20),                 # Subtitle font size
+    axis.title.x = element_text(size = 16),                  # X-axis title font size
+    axis.title.y = element_text(size = 16),                  # Y-axis title font size
+    axis.text.x = element_text(size = 14),                   # X-axis text font size
+    axis.text.y = element_text(size = 14),                   # Y-axis text font size
+    plot.caption = element_text(size = 12)                   # Caption font size
+  )
 Weighted
 
-ggsave("/Weighted.png", plot = Weighted, width = 10, height = 8, dpi = 300)
+ggsave("Weighted.png", plot = Weighted, width = 10, height = 8, dpi = 300)
 ```
 
+# Difference vs. Group size
 
-# Difference vs. Group size 
 ```{r, echo=FALSE}
 d_groupsize <- ggplot(results3, aes(x = groupsize, y = d)) +
   geom_point() +  # Add points to visualize individual observations
   geom_smooth(method = "loess", se = FALSE, color = "blue") + 
   geom_ribbon(aes(ymin = -1, ymax = 1, xmin = 0, xmax = 1000), fill = "grey", alpha = .2) +  
   labs(
-    x = "Gruppengröße",
-    y = "Differenzen zwischen den Fragebogenpaaren insgesamt",
+    x = "Group Size",
+    y = "Difference between Questionnaires",
     title = "Plot of Difference vs. Group Size"
   ) +
   scale_x_log10() +  # Set x-axis to logarithmic scale
   coord_cartesian(ylim = c(-20, 20)) +  # Limit y-axis from -20 to +20
   theme_minimal() +
-  scale_color_viridis_c(option = "D")
+  scale_color_viridis_c(option = "D") +
+  theme(
+    plot.title = element_text(size = 20, face = "bold"),     # Title font size
+    plot.subtitle = element_text(size = 20),                 # Subtitle font size
+    axis.title.x = element_text(size = 16),                  # X-axis title font size
+    axis.title.y = element_text(size = 16),                  # Y-axis title font size
+    axis.text.x = element_text(size = 14),                   # X-axis text font size
+    axis.text.y = element_text(size = 14),                   # Y-axis text font size
+    plot.caption = element_text(size = 12)                   # Caption font size
+  )
 d_groupsize
 
-ggsave("/d_groupsize.png", plot = d_groupsize, width = 10, height = 8, dpi = 300)
+ggsave("d_groupsize.png", plot = d_groupsize, width = 10, height = 8, dpi = 300)
 
 ```
 
 # Difference vs. Group size facets
+
 ```{r, echo=FALSE}
 # Daten filtern, um Ausreißer zu entfernen, deren Gruppengröße über 2000 liegt
 results3_filtered <- subset(results3, groupsize <= 2000)
@@ -205,16 +232,26 @@ d_groupsize_facet <- ggplot(results3_filtered, aes(x = groupsize, y = d)) +
     title = "Analysis of Group Size vs. Differences",
     subtitle = "Faceted by Measurement Variables, Outliers Removed"
   ) +
-  theme_minimal()
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 20, face = "bold"),     # Title font size
+    plot.subtitle = element_text(size = 20),                 # Subtitle font size
+    axis.title.x = element_text(size = 16),                  # X-axis title font size
+    axis.title.y = element_text(size = 16),                  # Y-axis title font size
+    axis.text.x = element_text(size = 14),                   # X-axis text font size
+    axis.text.y = element_text(size = 14),                   # Y-axis text font size
+    plot.caption = element_text(size = 12)                   # Caption font size
+  )
 
 d_groupsize_facet
 
 # Grafik speichern
-ggsave("/d_groupsize_facet.png", d_groupsize_facet, width = 10, height = 8, dpi = 300)
+ggsave("d_groupsize_facet.png", d_groupsize_facet, width = 10, height = 8, dpi = 300)
 
 ```
 
 # Forest Plot
+
 ```{r, echo=FALSE}
 library(gt)
 library(patchwork)
@@ -252,12 +289,20 @@ forestplot <- ggplot(data, aes(x = Estimate, y = Comparison)) +
     y = "Comparison",
     caption = "Error bars represent 95% confidence intervals"
   ) +
-  theme_minimal()
+  theme(
+    plot.title = element_text(size = 20, face = "bold"),     # Title font size
+    plot.subtitle = element_text(size = 20),                 # Subtitle font size
+    axis.title.x = element_text(size = 16),                  # X-axis title font size
+    axis.title.y = element_text(size = 16),                  # Y-axis title font size
+    axis.text.x = element_text(size = 14),                   # X-axis text font size
+    axis.text.y = element_text(size = 14),                   # Y-axis text font size
+    plot.caption = element_text(size = 12)                   # Caption font size
+  )
 
 forestplot
 
 # Grafik speichern
-ggsave("/forestplot.png", forestplot, width = 10, height = 8, dpi = 300)
+ggsave("forestplot.jpg", forestplot, width = 10, height = 8, dpi = 300)
 
 
 
