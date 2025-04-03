@@ -15,6 +15,7 @@ groupsWithinStudy
 above sepression cutoff, below depression cutoff
 
 
+# Datenframe erstellen
 
 ```{r setup, include=FALSE}
 library(readxl)
@@ -118,10 +119,12 @@ categorize_country <- function(country) {
   asia_pacific <- c("Japan", "China", "India", "Republic of Korea", "South Korea", "Taiwan", 
                     "Singapore", "Australia")
 
-  # Falls mehrere Länder gelistet sind → ersten Treffer nehmen
+  # Falls mehrere Länder gelistet sind → "more than one Country"
   country_list <- unlist(strsplit(country, ", "))
   
-  if (any(country_list %in% europe)) {
+  if (length(country_list) > 1) {
+    return("more than one Country")
+  } else if (any(country_list %in% europe)) {
     return("Europe")
   } else if (any(country_list %in% north_america)) {
     return("North America")
@@ -159,11 +162,9 @@ group_study_type <- function(study_type) {
 final_df <- final_df %>%
   mutate(`Study Type Group` = sapply(`Study Type`, group_study_type))
 
-# Ergebnis prüfen
-table(final_df$`Study Type Group`)
 
+```
 
-
-
-
+# table 1 daraus erstellen 
+```{r setup, include=FALSE}
 ```
