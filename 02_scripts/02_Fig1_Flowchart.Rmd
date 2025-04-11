@@ -19,7 +19,7 @@ digraph flowchart {
   start [label = 'Screened (2626 studies). Stopped after 20 for each questionnaire combination.']
   step1 [label = 'Unique studies after duplicates removed (1911 studies)']
   step2 [label = 'Descriptive analysis (87 studies)']
-  end [label = 'Included in meta-analysis (84 studies)']
+  end [label = 'Unique studies included in meta-analysis (84 studies)']
 
   start -> step1 -> step2 -> end
 }

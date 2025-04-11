@@ -12,7 +12,6 @@ country
 RTC/Clinical Trial obersational or other
 measurementTimePoints
 groupsWithinStudy
-above sepression cutoff, below depression cutoff
 
 
 # Datenframe erstellen
@@ -162,9 +161,21 @@ group_study_type <- function(study_type) {
 final_df <- final_df %>%
   mutate(`Study Type Group` = sapply(`Study Type`, group_study_type))
 
+final_df[82, "Measurement Timepoints"] <- "1"
+
 
 ```
 
 # table 1 daraus erstellen 
 ```{r setup, include=FALSE}
+library(dplyr)
+library(table1)
+
+
+# Create Table 1 and print it
+table_result <- table1(~ `Mean Age` + `Gender Distribution Female %` + `Study Type Group` + 
+                       `Study Country Group` + `Groups Within Study` + `Measurement Timepoints`,
+                       data = final_df, overall = TRUE)
+
+
 ```
