@@ -108,7 +108,7 @@ ggsave("Scatterplot.png", plot = Scatterplot, width = 10, height = 8, dpi = 300)
 
 ```
 
-# Mean und limits of Agreement
+# Means und limits of Agreement
 
 ```{r, echo=FALSE}
 results3$m = (results3$value_1 + results3$value_2)/2
@@ -158,7 +158,7 @@ ggsave("Unweighted.png", plot = Unweighted, width = 10, height = 8, dpi = 300)
 
 
 library(ggplot2)
-
+# bunt
 Weighted <- ggplot(results3, aes(x = m, y = d, color = d)) + 
   geom_point() + 
   facet_grid(measure_1 ~ measure_2) + 
@@ -178,7 +178,7 @@ Weighted <- ggplot(results3, aes(x = m, y = d, color = d)) +
   
   coord_cartesian(xlim = c(20, 80)) +
   labs(title = "Means and Limits of Agreement", 
-       x = "Measurement (m)", 
+       x = "PROMIS T-Score", 
        y = "Difference (d)",   
        subtitle = "Weighted by groupsize") + 
   scale_color_viridis_c(option = "D") + 
@@ -196,6 +196,48 @@ Weighted <- ggplot(results3, aes(x = m, y = d, color = d)) +
 
 
 
+#sw
+
+Weighted <- ggplot(results3, aes(x = m, y = d)) + 
+  geom_point() + 
+  facet_grid(measure_1 ~ measure_2) +
+
+  # Horizontale Linien
+  geom_hline(data = results4, aes(yintercept = wgt_mean)) + 
+  geom_hline(data = results4, aes(yintercept = wtd_lo), linetype = 2, alpha = 0.5) +
+  geom_hline(data = results4, aes(yintercept = wtd_hi), linetype = 2, alpha = 0.5) +
+
+  # Beschriftungen mittig über den Linien
+geom_text(data = results4, 
+          aes(x = 50, y = wtd_lo, label = sprintf("%.1f", wtd_lo)), 
+          vjust = 0.2, hjust = 3.1, color = "black", size = 4.5) +  
+  geom_text(data = results4, 
+            aes(x = 50, y = wtd_hi, label = sprintf("%.1f", wtd_hi)), 
+            vjust = 0.8, hjust = 3.1, color = "black", size = 4.5) + 
+  geom_text(data = results4, 
+            aes(x = 50, y = wgt_mean, label = sprintf("%.1f", wgt_mean)), 
+            vjust = 0.8, hjust = -2.1, color = "black", size = 4.5) +
+
+  coord_cartesian(xlim = c(30, 70)) + 
+  labs(
+    
+    x = "PROMIS T-Score", 
+    y = "Difference (d)"
+  ) +
+
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"), 
+    plot.subtitle = element_text(size = 16),        
+    axis.title.x = element_text(size = 14),               
+    axis.title.y = element_text(size = 14), 
+    axis.text.x = element_text(size = 14),                  
+    axis.text.y = element_text(size = 14), 
+    plot.caption = element_text(size = 12),
+    strip.text = element_text(size = 14) 
+  )
+
+
 Weighted
 
 ggsave("Weighted.png", plot = Weighted, width = 10, height = 8, dpi = 300)
@@ -205,26 +247,25 @@ ggsave("Weighted.png", plot = Weighted, width = 10, height = 8, dpi = 300)
 
 ```{r, echo=FALSE}
 d_groupsize <- ggplot(results3, aes(x = groupsize, y = d)) +
-  geom_point() +  # Add points to visualize individual observations
+  geom_point() +  
   geom_smooth(method = "loess", se = FALSE, color = "blue") + 
   geom_ribbon(aes(ymin = -1, ymax = 1, xmin = 0, xmax = 1000), fill = "grey", alpha = .2) +  
   labs(
     x = "Group Size",
-    y = "Difference between Questionnaires",
-    title = "Plot of Difference vs. Group Size"
+    y = "Difference (d)",
   ) +
-  scale_x_log10() +  # Set x-axis to logarithmic scale
-  coord_cartesian(ylim = c(-20, 20)) +  # Limit y-axis from -20 to +20
+  scale_x_log10() + 
+  coord_cartesian(ylim = c(-20, 20)) +  
   theme_minimal() +
   scale_color_viridis_c(option = "D") +
   theme(
-    plot.title = element_text(size = 20, face = "bold"),     # Title font size
-    plot.subtitle = element_text(size = 20),                 # Subtitle font size
-    axis.title.x = element_text(size = 16),                  # X-axis title font size
-    axis.title.y = element_text(size = 16),                  # Y-axis title font size
-    axis.text.x = element_text(size = 14),                   # X-axis text font size
-    axis.text.y = element_text(size = 14),                   # Y-axis text font size
-    plot.caption = element_text(size = 12)                   # Caption font size
+    plot.title = element_text(size = 20, face = "bold"),    
+    plot.subtitle = element_text(size = 20),               
+    axis.title.x = element_text(size = 16),               
+    axis.title.y = element_text(size = 16),              
+    axis.text.x = element_text(size = 14),            
+    axis.text.y = element_text(size = 14),                
+    plot.caption = element_text(size = 12)              
   )
 d_groupsize
 
@@ -274,53 +315,78 @@ ggsave("d_groupsize_facet.png", d_groupsize_facet, width = 10, height = 8, dpi =
 library(gt)
 library(patchwork)
 
-data <- data.frame(
-  Comparison = c("BDI x CESD (7 studies)", "BDI x HADS (9 studies)", "BDI x PHQ (20 studies)", "BDI x PROMIS (1 study)",
-                 "CESD x HADS (14 studies)", "CESD x PHQ (9 studies)", "CESD x PROMIS (1 study)",
-                 "HADS x PHQ (19 studies)", "HADS x PROMIS (1 study)", "PHQ x PROMIS (6 studies)"),
-  Estimate = c(-2.97582, 1.52532, -0.78826, 1.79057, 2.85519,
-               1.46963, 5.45416, -2.47907, -2.65198, 5.30093),
-  Std.Error = c(1.31949, 0.97459, 0.68534, 2.98016, 0.82313,
-                0.89610, 1.29958, 0.70739, 3.06720, 1.03198),
-  lower = c(-5.59149, -0.40445, -2.15921, -4.21102, 1.20904,
-            -0.32298, 2.89030, -3.89421, -8.80756, 3.25347),
-  upper = c(-0.36015, 3.45508, 0.58269, 7.79216, 4.50134,
-            3.26224, 8.01801, -1.06393, 3.50360, 7.34839),
-  p.value = c(0.0261462, 0.1202153, 0.2546478, 0.5509542,
-               0.0009684, 0.1062524, 4.193e-05, 0.0008742, 0.3912369, 1.388e-06)
+
+# Vergleichsbeschriftungen erzeugen
+results4$Comparison_base <- paste(results4$measure_1, "x", results4$measure_2)
+
+# Studienanzahlen definieren
+study_counts <- c(
+  "BDI x CESD"    = 7,
+  "BDI x HADS"    = 9,
+  "BDI x PHQ"     = 20,
+  "BDI x PROMIS"  = 1,
+  "CESD x HADS"   = 14,
+  "CESD x PHQ"    = 9,
+  "CESD x PROMIS" = 1,
+  "HADS x PHQ"    = 19,
+  "HADS x PROMIS" = 1,
+  "PHQ x PROMIS"  = 6
 )
 
+# Gruppenanzahlen definieren
+group_counts <- c(
+  "BDI x CESD"    = 23,
+  "BDI x HADS"    = 32,
+  "BDI x PHQ"     = 38,
+  "BDI x PROMIS"  = 2,
+  "CESD x HADS"   = 36,
+  "CESD x PHQ"    = 27,
+  "CESD x PROMIS" = 1,
+  "HADS x PHQ"    = 38,
+  "HADS x PROMIS" = 1,
+  "PHQ x PROMIS"  = 6
+)
 
-data <- data[order(data$Estimate), ]
+# Kombinierte Comparison-Beschriftung erstellen
+results4$Comparison <- paste0(
+  results4$Comparison_base,
+  " (studies n=", study_counts[results4$Comparison_base],
+  ", groups n=", group_counts[results4$Comparison_base], ")"
+)
 
-# Forest plot
-forestplot <- ggplot(data, aes(x = Estimate, y = Comparison)) +
+# Nach wgt_mean sortieren und Reihenfolge für Plot fixieren
+results4 <- results4[order(results4$wgt_mean), ]
+results4$Comparison <- factor(results4$Comparison, levels = results4$Comparison)
+
+# Forestplot erstellen
+library(ggplot2)
+
+forestplot <- ggplot(results4, aes(x = wgt_mean, y = Comparison)) +
   geom_point(size = 3) +
-  geom_errorbarh(aes(xmin = lower, xmax = upper), height = 0.2) +
+  geom_errorbarh(aes(xmin = wtd_lo, xmax = wtd_hi), height = 0.2) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "grey") +
   scale_x_continuous(limits = c(-10, 10)) +
   theme_minimal() +
   labs(
-    title = "Forest Plot",
-    subtitle = "Comparison of Questionnaires",
-    x = "Estimate",
-    y = "Comparison",
-    caption = "Error bars represent 95% confidence intervals"
+    x = "Difference in PROMIS T-Scores",
+    y = "Comparison"
   ) +
   theme(
-    plot.title = element_text(size = 20, face = "bold"),     # Title font size
-    plot.subtitle = element_text(size = 20),                 # Subtitle font size
-    axis.title.x = element_text(size = 16),                  # X-axis title font size
-    axis.title.y = element_text(size = 16),                  # Y-axis title font size
-    axis.text.x = element_text(size = 14),                   # X-axis text font size
-    axis.text.y = element_text(size = 14),                   # Y-axis text font size
-    plot.caption = element_text(size = 12)                   # Caption font size
+    plot.title = element_text(size = 20, face = "bold"),
+    plot.subtitle = element_text(size = 20),
+    axis.title.x = element_text(size = 16),
+    axis.title.y = element_text(size = 16),
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14),
+    plot.caption = element_text(size = 12)
   )
 
-forestplot
+# Plot anzeigen
+print(forestplot)
 
-# Grafik speichern
+# Optional: Grafik speichern
 ggsave("forestplot.jpg", forestplot, width = 10, height = 8, dpi = 300)
+
 
 
 
