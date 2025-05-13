@@ -54,9 +54,9 @@ anova(questionnairemodel, interceptonlymodel)
 
 ```
 
-
-## mean of (absolute) d 
+# mean
 ```{r, echo=FALSE}
+# mean of (absolute) d 
 
 d_absolute <- abs(results3$d)
 d_absolute_mean <- mean(d_absolute)

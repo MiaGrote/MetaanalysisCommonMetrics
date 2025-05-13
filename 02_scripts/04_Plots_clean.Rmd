@@ -103,12 +103,14 @@ Scatterplot<- ggplot(results3, aes(x = value_1, y = value_2)) +
 
 Scatterplot
 
-ggsave("Scatterplot.png", plot = Scatterplot, width = 10, height = 8, dpi = 300)
+#ggsave("Scatterplot.png", plot = Scatterplot, width = 10, height = 8, dpi = 300)
 
 
 ```
 
-# Means und limits of Agreement
+# Blant Altman plot
+
+
 
 ```{r, echo=FALSE}
 results3$m = (results3$value_1 + results3$value_2)/2
@@ -128,78 +130,13 @@ results4_filtered <- results4 %>%
          !is.na(hi) & hi >= -20 & hi <= 20)
 
 
-
-# Unweighted plot
-Unweighted <- ggplot(results3, aes(x = m, y = d, color = d)) + 
-  geom_point() + 
-  facet_grid(measure_1 ~ measure_2) + 
-  geom_hline(data = results4, aes(yintercept = mean1)) + 
-  geom_hline(data = results4, aes(yintercept = lo), linetype = 2) +
-  geom_hline(data = results4, aes(yintercept = hi), linetype = 2) +
-  geom_text(data = results4, aes(x = 30, y = mean1, label = sprintf("%.1f", mean1)), vjust = -0.2, color = "black") +
-  geom_text(data = results4, aes(x = 30, y = lo, label = sprintf("%.1f", lo)), vjust = -0.2, color = "black") +
-  geom_text(data = results4, aes(x = 30, y = hi, label = sprintf("%.1f", hi)), vjust = -0.2, color = "black") +
-  coord_cartesian(xlim = c(20, 80)) +
-  labs(title = "Mean and Limits of Agreement") + 
-  scale_color_viridis_c(option = "D") + 
-  theme_minimal()
-Unweighted +
-  theme(
-    plot.title = element_text(size = 20, face = "bold"),     # Title font size
-    plot.subtitle = element_text(size = 20),                 # Subtitle font size
-    axis.title.x = element_text(size = 16),                  # X-axis title font size
-    axis.title.y = element_text(size = 16),                  # Y-axis title font size
-    axis.text.x = element_text(size = 14),                   # X-axis text font size
-    axis.text.y = element_text(size = 14),                   # Y-axis text font size
-    plot.caption = element_text(size = 12)                   # Caption font size
-  )
-
-ggsave("Unweighted.png", plot = Unweighted, width = 10, height = 8, dpi = 300)
-
-
-library(ggplot2)
-# bunt
-Weighted <- ggplot(results3, aes(x = m, y = d, color = d)) + 
-  geom_point() + 
-  facet_grid(measure_1 ~ measure_2) + 
-  geom_hline(data = results4, aes(yintercept = wgt_mean)) + 
-  geom_hline(data = results4, aes(yintercept = wtd_lo), linetype = 2, alpha = 0.5) +
-  geom_hline(data = results4, aes(yintercept = wtd_hi), linetype = 2, alpha = 0.5) +
-    geom_text(data = results4, 
-            aes(x = 20, y = wtd_lo, label = sprintf("%.1f", wtd_lo)), 
-            vjust = 0.8, color = "black") +  
-  geom_text(data = results4, 
-            aes(x = 20, y = wtd_hi, label = sprintf("%.1f", wtd_hi)), 
-            vjust = -1.2, color = "black") + 
-  
-  geom_text(data = results4, 
-            aes(x = 75, y = wgt_mean, label = sprintf("%.1f", wgt_mean)), 
-            vjust = -0.4, color = "black") +
-  
-  coord_cartesian(xlim = c(20, 80)) +
-  labs(title = "Means and Limits of Agreement", 
-       x = "PROMIS T-Score", 
-       y = "Difference (d)",   
-       subtitle = "Weighted by groupsize") + 
-  scale_color_viridis_c(option = "D") + 
-  theme_minimal() +
-  theme(
-    plot.title = element_text(size = 20, face = "bold"), 
-    plot.subtitle = element_text(size = 20),        
-    axis.title.x = element_text(size = 16),               
-    axis.title.y = element_text(size = 16),               
-    axis.text.x = element_text(size = 14),                  
-    axis.text.y = element_text(size = 14),                   
-    plot.caption = element_text(size = 12)                  
-  )
-
-
-
-
 #sw
 
+counts <- results3 %>%
+  dplyr::count(measure_1, measure_2, name = "n")
+
 Weighted <- ggplot(results3, aes(x = m, y = d)) + 
-  geom_point() + 
+  geom_point(alpha = 0.5) + 
   facet_grid(measure_1 ~ measure_2) +
 
   # Horizontale Linien
@@ -210,15 +147,15 @@ Weighted <- ggplot(results3, aes(x = m, y = d)) +
   # Beschriftungen mittig über den Linien
 geom_text(data = results4, 
           aes(x = 50, y = wtd_lo, label = sprintf("%.1f", wtd_lo)), 
-          vjust = 0.2, hjust = 3.1, color = "black", size = 4.5) +  
+          vjust = 0.2, hjust = 2.9, color = "black", size = 4.5) +  
   geom_text(data = results4, 
             aes(x = 50, y = wtd_hi, label = sprintf("%.1f", wtd_hi)), 
-            vjust = 0.8, hjust = 3.1, color = "black", size = 4.5) + 
+            vjust = 0.8, hjust = 2.1, color = "black", size = 4.5) + 
   geom_text(data = results4, 
             aes(x = 50, y = wgt_mean, label = sprintf("%.1f", wgt_mean)), 
-            vjust = 0.8, hjust = -2.1, color = "black", size = 4.5) +
+            vjust = 0.8, hjust = -1.9, color = "black", size = 4.5) +
 
-  coord_cartesian(xlim = c(30, 70)) + 
+  coord_cartesian(xlim = c(30, 70), ylim = c(-15, 15)) +
   labs(
     
     x = "PROMIS T-Score", 
@@ -240,7 +177,9 @@ geom_text(data = results4,
 
 Weighted
 
-ggsave("Weighted.png", plot = Weighted, width = 10, height = 8, dpi = 300)
+ggsave("Figure_2.png", plot = Weighted, width = 10, height = 8, dpi = 300)
+
+
 ```
 
 # Difference vs. Group size
@@ -269,7 +208,9 @@ d_groupsize <- ggplot(results3, aes(x = groupsize, y = d)) +
   )
 d_groupsize
 
-ggsave("d_groupsize.png", plot = d_groupsize, width = 10, height = 8, dpi = 300)
+#ggsave("Figure_3.png", plot = d_groupsize, width = 10, height = 8, dpi = 300)
+ggsave("Figure_3.pdf", plot = d_groupsize, width = 10, height = 8, units = "in")
+
 
 ```
 
@@ -305,7 +246,7 @@ d_groupsize_facet <- ggplot(results3_filtered, aes(x = groupsize, y = d)) +
 d_groupsize_facet
 
 # Grafik speichern
-ggsave("d_groupsize_facet.png", d_groupsize_facet, width = 10, height = 8, dpi = 300)
+#ggsave("d_groupsize_facet.png", d_groupsize_facet, width = 10, height = 8, dpi = 300)
 
 ```
 
@@ -385,7 +326,8 @@ forestplot <- ggplot(results4, aes(x = wgt_mean, y = Comparison)) +
 print(forestplot)
 
 # Optional: Grafik speichern
-ggsave("forestplot.jpg", forestplot, width = 10, height = 8, dpi = 300)
+#ggsave("Figure_4.jpg", forestplot, width = 10, height = 8, dpi = 300)
+ggsave("Figure_4.pdf", plot = forestplot, width = 10, height = 8, units = "in")
 
 
 
