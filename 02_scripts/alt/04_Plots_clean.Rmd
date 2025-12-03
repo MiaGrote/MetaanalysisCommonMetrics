@@ -1,0 +1,555 @@
+---
+title: "04_Plots_cleaned"
+output: html_document
+date: "2024-08-30"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# load data
+
+```{r, echo=FALSE}
+
+
+library(here)      
+library(readxl)
+library(dplyr)
+library(openxlsx)
+
+path_data <- function(file) {
+  here("01_data", file)
+}
+
+SUBSET_BDI    <- read.xlsx(path_data("SUBSET_BDI.xlsx"))    %>% unique()
+SUBSET_CESD   <- read.xlsx(path_data("SUBSET_CESD.xlsx"))   %>% unique()
+SUBSET_HADS   <- read.xlsx(path_data("SUBSET_HADS.xlsx"))   %>% unique()
+SUBSET_PHQ    <- read.xlsx(path_data("SUBSET_PHQ.xlsx"))    %>% unique()
+SUBSET_PROMIS <- read.xlsx(path_data("SUBSET_PROMIS.xlsx")) %>% unique()
+
+
+```
+
+# Datensätze erstellen (Felix)
+
+In drei Schritten results Liste mit "Study", "Variable", "measure_1", "measure_2", "value_1", "value_2", "groupsize" aus allen Fragebogenkombinationen erstellen
+
+```{r, echo=FALSE}
+library(Hmisc)
+
+BDIxCESD = inner_join(SUBSET_BDI, SUBSET_CESD, by = c("Study", "Variable")) %>% unique()
+BDIxHADS <- inner_join(SUBSET_BDI, SUBSET_HADS, by = c("Study", "Variable")) %>%unique()
+BDIxPHQ <- inner_join(SUBSET_BDI, SUBSET_PHQ, by = c("Study", "Variable")) %>%unique()
+BDIxPROMIS <- inner_join(SUBSET_BDI, SUBSET_PROMIS, by = c("Study", "Variable")) %>%unique()
+CESDxHADS <- inner_join(SUBSET_CESD, SUBSET_HADS, by = c("Study", "Variable")) %>%unique()
+CESDxPHQ <- inner_join(SUBSET_CESD, SUBSET_PHQ, by = c("Study", "Variable")) %>%unique()
+CESDxPROMIS <- inner_join(SUBSET_CESD, SUBSET_PROMIS, by = c("Study", "Variable")) %>%unique()
+HADSxPHQ <- inner_join(SUBSET_HADS, SUBSET_PHQ, by = c("Study", "Variable")) %>%unique()
+HADSxPROMIS <- inner_join(SUBSET_HADS, SUBSET_PROMIS, by = c("Study", "Variable")) %>%unique()
+PHQxPROMIS <- inner_join(SUBSET_PHQ, SUBSET_PROMIS, by = c("Study", "Variable"))%>%unique()
+
+
+results = list(BDIxCESD, BDIxHADS, BDIxPHQ, 
+BDIxPROMIS, CESDxHADS, CESDxPHQ, CESDxPROMIS, HADSxPHQ, 
+HADSxPROMIS, PHQxPROMIS)
+names(results) =  c("BDIxCESD", "BDIxHADS", "BDIxPHQ", 
+"BDIxPROMIS", "CESDxHADS", "CESDxPHQ", "CESDxPROMIS", "HADSxPHQ", 
+"HADSxPROMIS", "PHQxPROMIS")
+
+results$BDIxPROMIS$PROMIS_PROMIS.Skala = results$BDIxPROMIS$PROMIS
+
+results2 = lapply(names(results), function(x){
+results[[x]]$measure_1 = strsplit(x, "x")[[1]][1]
+results[[x]]$measure_2 = strsplit(x, "x")[[1]][2]
+results[[x]]$value_1 = results[[x]][, grep("PROMIS", names(results[[x]]))[1]]
+results[[x]]$value_2 =  results[[x]][, grep("PROMIS", names(results[[x]]))[2]]
+results[[x]]$groupsize = results[[x]][,"groupsize.x"]
+results[[x]][, c("Study", "Variable", "measure_1", "measure_2", "value_1", "value_2", "groupsize")]
+})
+
+str(results2)
+results3 = bind_rows(results2)
+results3$groupsize = as.numeric(results3$groupsize)
+
+```
+
+
+# Figure 2: Blant Altman plot
+
+```{r, echo=FALSE}
+results3$m = (results3$value_1 + results3$value_2)/2
+results3$d = (results3$value_1 - results3$value_2)
+results4 = results3 %>% group_by(measure_1, measure_2) %>% summarise(mean1 = mean(d), wgt_mean = wtd.mean(d, w = groupsize, na.rm = T),
+                                                                     sd = sd(d), wtd_sd = sqrt(wtd.var(d, w = groupsize)),
+                                                                     lo = mean1-1.96*sd, hi = mean1+1.96*sd,
+                                                                     wtd_lo = wgt_mean-1.96*wtd_sd, wtd_hi = wgt_mean+1.96*wtd_sd)
+
+
+counts <- results3 %>%
+  dplyr::count(measure_1, measure_2, name = "n")
+
+Weighted <- ggplot(results3, aes(x = m, y = d)) + 
+  geom_point(alpha = 0.5) + 
+  facet_grid(measure_1 ~ measure_2) +
+
+  # Horizontale Linien
+  geom_hline(data = results4, aes(yintercept = wgt_mean)) + 
+  geom_hline(data = results4, aes(yintercept = wtd_lo), linetype = 2, alpha = 0.5) +
+  geom_hline(data = results4, aes(yintercept = wtd_hi), linetype = 2, alpha = 0.5) +
+
+  # Beschriftungen mittig über den Linien
+geom_text(data = results4, 
+          aes(x = 50, y = wtd_lo, label = sprintf("%.1f", wtd_lo)), 
+          vjust = 0.2, hjust = 2.9, color = "black", size = 4.5) +  
+  geom_text(data = results4, 
+            aes(x = 50, y = wtd_hi, label = sprintf("%.1f", wtd_hi)), 
+            vjust = 0.8, hjust = 2.1, color = "black", size = 4.5) + 
+  geom_text(data = results4, 
+            aes(x = 50, y = wgt_mean, label = sprintf("%.1f", wgt_mean)), 
+            vjust = 0.8, hjust = -1.9, color = "black", size = 4.5) +
+
+  coord_cartesian(xlim = c(30, 70), ylim = c(-15, 15)) +
+  labs(
+    
+    x = "PROMIS T-Score", 
+    y = "Difference (d)"
+  ) +
+
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"), 
+    plot.subtitle = element_text(size = 16),        
+    axis.title.x = element_text(size = 14),               
+    axis.title.y = element_text(size = 14), 
+    axis.text.x = element_text(size = 14),                  
+    axis.text.y = element_text(size = 14), 
+    plot.caption = element_text(size = 12),
+    strip.text = element_text(size = 14) 
+  )
+
+
+Weighted
+
+ggsave("Figure_2.jpeg", plot = Weighted, width = 10, height = 8, dpi = 300)
+
+
+```
+
+# Figure 3: Difference vs. Group size
+
+```{r, echo=FALSE}
+d_groupsize <- ggplot(results3, aes(x = groupsize, y = d)) +
+  geom_point() +  
+  geom_smooth(method = "loess", se = FALSE, color = "blue") + 
+  geom_ribbon(aes(ymin = -1, ymax = 1, xmin = 0, xmax = 1000), fill = "grey", alpha = .2) +  
+  labs(
+    x = "Group Size",
+    y = "Difference (d)",
+  ) +
+  scale_x_log10() + 
+  coord_cartesian(ylim = c(-20, 20)) +  
+  theme_minimal() +
+  scale_color_viridis_c(option = "D") +
+  theme(
+    plot.title = element_text(size = 20, face = "bold"),    
+    plot.subtitle = element_text(size = 20),               
+    axis.title.x = element_text(size = 16),               
+    axis.title.y = element_text(size = 16),              
+    axis.text.x = element_text(size = 14),            
+    axis.text.y = element_text(size = 14),                
+    plot.caption = element_text(size = 12)              
+  )
+d_groupsize
+
+ggsave("Figure_3.jpeg", plot = d_groupsize, width = 10, height = 8, units = "in")
+
+
+```
+
+# Forest Plot
+
+```{r, echo=FALSE}
+library(gt)
+library(patchwork)
+
+print(results4)
+
+# Vergleichsbeschriftungen erzeugen
+results4$Comparison_base <- paste(results4$measure_1, "x", results4$measure_2)
+
+# Studienanzahlen definieren
+study_counts <- c(
+  "BDI x CESD"    = 7,
+  "BDI x HADS"    = 9,
+  "BDI x PHQ"     = 20,
+  "BDI x PROMIS"  = 1,
+  "CESD x HADS"   = 14,
+  "CESD x PHQ"    = 9,
+  "CESD x PROMIS" = 1,
+  "HADS x PHQ"    = 19,
+  "HADS x PROMIS" = 1,
+  "PHQ x PROMIS"  = 6
+)
+
+# Gruppenanzahlen definieren
+group_counts <- c(
+  "BDI x CESD"    = 23,
+  "BDI x HADS"    = 32,
+  "BDI x PHQ"     = 38,
+  "BDI x PROMIS"  = 2,
+  "CESD x HADS"   = 36,
+  "CESD x PHQ"    = 27,
+  "CESD x PROMIS" = 1,
+  "HADS x PHQ"    = 38,
+  "HADS x PROMIS" = 1,
+  "PHQ x PROMIS"  = 6
+)
+
+# Kombinierte Comparison-Beschriftung erstellen
+results4$Comparison <- paste0(
+  results4$Comparison_base,
+  " (studies n=", study_counts[results4$Comparison_base],
+  ", groups n=", group_counts[results4$Comparison_base], ")"
+)
+
+# Nach wgt_mean sortieren und Reihenfolge für Plot fixieren
+results4 <- results4[order(results4$wgt_mean), ]
+results4$Comparison <- factor(results4$Comparison, levels = results4$Comparison)
+
+# Forestplot erstellen
+library(ggplot2)
+
+forestplot <- ggplot(results4, aes(x = wgt_mean, y = Comparison)) +
+  geom_point(size = 3) +
+  geom_errorbarh(aes(xmin = wtd_lo, xmax = wtd_hi), height = 0.2) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey") +
+  scale_x_continuous(limits = c(-10, 10)) +
+  theme_minimal() +
+  labs(
+    x = "Difference in PROMIS T-Scores",
+    y = "Comparison"
+  ) +
+  theme(
+    plot.title = element_text(size = 20, face = "bold"),
+    plot.subtitle = element_text(size = 20),
+    axis.title.x = element_text(size = 16),
+    axis.title.y = element_text(size = 16),
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14),
+    plot.caption = element_text(size = 12)
+  )
+
+# Plot anzeigen
+print(forestplot)
+
+# Optional: Grafik speichern
+ggsave("Figure_4.jpeg", plot = forestplot, width = 10, height = 8, units = "in")
+
+
+```
+
+```{r, echo=FALSE}
+
+library(dplyr)
+library(ggplot2)
+
+# ---- Labels vorbereiten ----
+results4 <- results4 %>%
+  mutate(
+    est     = wgt_mean,
+    ci_lo   = wtd_lo,
+    ci_hi   = wtd_hi,
+    # Punkt-Schätzer
+    est_lbl = sprintf("%.2f", est),
+    # CI nur, wenn beide Grenzen endlich sind UND nicht identisch
+    ci_lbl  = ifelse(
+      is.finite(ci_lo) & is.finite(ci_hi) & (round(ci_lo, 5) != round(ci_hi, 5)),
+      sprintf("[%.2f, %.2f]", ci_lo, ci_hi),
+      "—"
+    ),
+    # p-Wert
+    p_lbl   = case_when(
+      is.na(p)   ~ "p = —",
+      p < .001   ~ "p < 0.001",
+      TRUE       ~ sprintf("p = %.3f", p)
+    )
+  )
+
+# Sortierung
+results4 <- results4[order(results4$wgt_mean), ]
+results4$Comparison <- factor(results4$Comparison, levels = results4$Comparison)
+
+# ---- Dynamische Spalten-Positionen ----
+x_data_max <- max(c(results4$est, results4$ci_hi), na.rm = TRUE)
+x_data_min <- min(c(results4$est, results4$ci_lo), na.rm = TRUE)
+gap <- diff(range(c(x_data_min, x_data_max))) * 0.12
+if(!is.finite(gap) || gap == 0) gap <- 1.0
+
+x_col1 <- x_data_max + gap*0.8
+x_col2 <- x_col1    + gap*1.05
+x_col3 <- x_col2    + gap*1.05
+x_max  <- x_col3    + gap*0.9
+x_min  <- x_data_min - gap*0.2
+
+# ---- Forest Plot ----
+forestplot <- ggplot(results4, aes(x = est, y = Comparison)) +
+  geom_errorbarh(aes(xmin = ci_lo, xmax = ci_hi),
+                 height = 0.2, na.rm = TRUE) +
+  geom_point(size = 3, shape = 21,
+             fill = "black", color = "black", stroke = 0.3, na.rm = TRUE) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey50") +
+  # Textspalten
+  geom_text(aes(x = x_col1, label = est_lbl), hjust = 0, size = 3.6) +
+  geom_text(aes(x = x_col2, label = ci_lbl),  hjust = 0, size = 3.6) +
+  geom_text(aes(x = x_col3, label = p_lbl),   hjust = 0, size = 3.6) +
+  # Header
+  annotate("text", x = x_col1, y = Inf, label = "Point estimate",
+           hjust = 0, vjust = 1.5, fontface = 2, size = 3.4) +
+  annotate("text", x = x_col2, y = Inf, label = "95% CI",
+           hjust = 0, vjust = 1.5, fontface = 2, size = 3.4) +
+  annotate("text", x = x_col3, y = Inf, label = "p-value",
+           hjust = 0, vjust = 1.5, fontface = 2, size = 3.4) +
+  scale_x_continuous(limits = c(x_min, x_max),
+                     expand = expansion(mult = c(0.02, 0.05))) +
+  labs(
+    x = "Difference in PROMIS T-Scores",
+    y = "Comparison"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    axis.text.y  = element_text(size = 11),
+    axis.text.x  = element_text(size = 11),
+    axis.title.x = element_text(size = 13),
+    axis.title.y = element_text(size = 13),
+    plot.margin  = margin(10, 30, 10, 10)
+  )
+
+print(forestplot)
+
+ggsave("Figure_4_wide.jpeg", plot = forestplot,
+       width = 16, height = 8, units = "in", dpi = 300)
+
+```
+
+
+forest plot überabreitet
+```{r, echo=FALSE}
+
+library(dplyr)
+library(ggplot2)
+
+# --------------------------------------------------
+# Zusatzinfos und Labels vorbereiten (Reihenfolge NICHT ändern)
+# --------------------------------------------------
+results4 <- results4 %>%
+  mutate(
+    Comparison_base = paste(measure_1, "x", measure_2),
+    n_studies = as.integer(study_counts[Comparison_base]),
+    est   = wgt_mean,
+    ci_lo = wtd_lo,
+    ci_hi = wtd_hi,
+    # CI gilt nur, wenn Grenzen endlich und unterschiedlich
+    no_ci = !is.finite(ci_lo) | !is.finite(ci_hi) | (round(ci_lo, 6) == round(ci_hi, 6))
+  )
+
+# Labels
+results4 <- results4 %>%
+  mutate(
+    est_lbl = sprintf("%.2f", est),
+    ci_lbl  = ifelse(no_ci, "—", sprintf("[%.2f, %.2f]", ci_lo, ci_hi)),
+    p_lbl_raw = case_when(
+      is.na(p) ~ "—",
+      p < .001 ~ "p < 0.001",
+      TRUE     ~ sprintf("p = %.3f", p)
+    ),
+    # 🔹 Änderung: p-Wert wird bei allen Vergleichen mit nur 1 Studie ausgeblendet
+    p_lbl = ifelse(n_studies == 1, "—", p_lbl_raw)
+  )
+
+# --------------------------------------------------
+# Dynamische Positionen der Spalten (mehr Platz, kein Überlappen)
+# --------------------------------------------------
+x_data_max <- max(c(results4$est, results4$ci_hi[!results4$no_ci]), na.rm = TRUE)
+x_data_min <- min(c(results4$est, results4$ci_lo[!results4$no_ci]), na.rm = TRUE)
+rng <- diff(range(c(x_data_min, x_data_max)))
+gap <- if (is.finite(rng) && rng > 0) rng * 0.15 else 1.0
+
+x_col1 <- x_data_max + gap * 0.8
+x_col2 <- x_col1    + gap * 1.1
+x_col3 <- x_col2    + gap * 1.1
+x_max  <- x_col3    + gap * 0.9
+x_min  <- x_data_min - gap * 0.25
+
+# --------------------------------------------------
+# Forest Plot
+# --------------------------------------------------
+forestplot <- ggplot(results4, aes(x = est, y = Comparison)) +
+  # CI nur, wenn vorhanden
+  geom_errorbarh(
+    data = subset(results4, !no_ci),
+    aes(xmin = ci_lo, xmax = ci_hi),
+    height = 0.25, linewidth = 0.8, alpha = 0.9
+  ) +
+  geom_point(size = 4.5, shape = 21, fill = "black", color = "black", stroke = 0.4, na.rm = TRUE) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40", linewidth = 0.6) +
+
+  # Textspalten (größer, mit Abstand)
+  geom_text(aes(x = x_col1, label = est_lbl), hjust = 0, size = 7.0) +
+  geom_text(aes(x = x_col2, label = ci_lbl),  hjust = 0, size = 7.0) +
+  geom_text(aes(x = x_col3, label = p_lbl),   hjust = 0, size = 7.0) +
+
+  # Header (weiter oben, kein Überlappen)
+  annotate("text", x = x_col1, y = Inf, label = "Point estimate",
+           hjust = 0, vjust = 1.2, fontface = 2, size = 5.2) +
+  annotate("text", x = x_col2, y = Inf, label = "95% CI",
+           hjust = 0, vjust = 1.2, fontface = 2, size = 5.2) +
+  annotate("text", x = x_col3, y = Inf, label = "p-value",
+           hjust = 0, vjust = 1.2, fontface = 2, size = 5.2) +
+
+  scale_x_continuous(limits = c(x_min, x_max),
+                     expand = expansion(mult = c(0.02, 0.05))) +
+  labs(
+    x = "Difference in PROMIS T-Scores",
+    y = "Comparison"
+  ) +
+  theme_minimal(base_size = 16) +
+  theme(
+    axis.text.y  = element_text(size = 22),
+    axis.text.x  = element_text(size = 14),
+    axis.title.x = element_text(size = 18, face = "bold"),
+    axis.title.y = element_text(size = 18, face = "bold"),
+    plot.margin  = margin(14, 38, 14, 12)
+  )
+
+print(forestplot)
+
+# Optional speichern
+ggsave("Figure_4_wide.jpeg", plot = forestplot,
+       width = 24, height = 8, units = "in", dpi = 300)
+
+
+```
+
+
+```{r, echo=FALSE}
+library(emmeans)
+library(dplyr)
+library(ggplot2)
+
+# ----------------------------------------------------------
+# 1) EMMeans aus Mixed Model berechnen
+# ----------------------------------------------------------
+emm <- emmeans(interceptonlymodel, "questionnaire_pair")
+emm_df <- as.data.frame(emm)
+
+# p-Werte aus dem Mixed Model
+emm_df$p <- summary(emm)$p.value
+
+
+# ----------------------------------------------------------
+# 2) Vergleichsbeschriftungen erzeugen
+# ----------------------------------------------------------
+emm_df$Comparison_base <- gsub(" ", " x ", emm_df$questionnaire_pair)
+
+study_counts <- c(
+  "BDI x CESD"    = 7,
+  "BDI x HADS"    = 9,
+  "BDI x PHQ"     = 20,
+  "BDI x PROMIS"  = 1,
+  "CESD x HADS"   = 14,
+  "CESD x PHQ"    = 9,
+  "CESD x PROMIS" = 1,
+  "HADS x PHQ"    = 19,
+  "HADS x PROMIS" = 1,
+  "PHQ x PROMIS"  = 6
+)
+
+group_counts <- c(
+  "BDI x CESD"    = 23,
+  "BDI x HADS"    = 32,
+  "BDI x PHQ"     = 38,
+  "BDI x PROMIS"  = 2,
+  "CESD x HADS"   = 36,
+  "CESD x PHQ"    = 27,
+  "CESD x PROMIS" = 1,
+  "HADS x PHQ"    = 38,
+  "HADS x PROMIS" = 1,
+  "PHQ x PROMIS"  = 6
+)
+
+emm_df$Comparison <- paste0(
+  emm_df$Comparison_base,
+  " (studies n=", study_counts[emm_df$Comparison_base],
+  ", groups n=", group_counts[emm_df$Comparison_base], ")"
+)
+
+# ----------------------------------------------------------
+# 3) Labels & numerische Spalten
+# ----------------------------------------------------------
+emm_df <- emm_df %>%
+  mutate(
+    est     = emmean,
+    ci_lo   = lower.CL,
+    ci_hi   = upper.CL,
+    est_lbl = sprintf("%.2f", est),
+    ci_lbl  = sprintf("[%.2f, %.2f]", ci_lo, ci_hi),
+    p_lbl   = ifelse(p < .001, "p < 0.001", sprintf("p = %.3f", p))
+  )
+
+# ----------------------------------------------------------
+# 4) Dynamische x-Positionen für Textspalten
+# ----------------------------------------------------------
+x_data_max <- max(emm_df$ci_hi)
+x_data_min <- min(emm_df$ci_lo)
+gap <- (x_data_max - x_data_min) * 0.12
+
+x_col1 <- x_data_max + gap * 0.8
+x_col2 <- x_col1    + gap * 1.05
+x_col3 <- x_col2    + gap * 1.05
+x_max  <- x_col3    + gap * 0.9
+x_min  <- x_data_min - gap * 0.2
+
+# Sortieren
+emm_df <- emm_df[order(emm_df$est), ]
+emm_df$Comparison <- factor(emm_df$Comparison, levels = emm_df$Comparison)
+
+# ----------------------------------------------------------
+# 5) Forestplot (wie Version 2)
+# ----------------------------------------------------------
+forestplot <- ggplot(emm_df, aes(x = est, y = Comparison)) +
+  geom_errorbarh(aes(xmin = ci_lo, xmax = ci_hi), height = 0.2) +
+  geom_point(size = 3, shape = 21, fill = "black", color = "black") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey50") +
+
+  geom_text(aes(x = x_col1, label = est_lbl), hjust = 0, size = 3.6) +
+  geom_text(aes(x = x_col2, label = ci_lbl), hjust = 0, size = 3.6) +
+  geom_text(aes(x = x_col3, label = p_lbl),  hjust = 0, size = 3.6) +
+
+  annotate("text", x = x_col1, y = Inf, label = "Point estimate",
+           hjust = 0, vjust = 1.5, fontface = 2, size = 3.4) +
+  annotate("text", x = x_col2, y = Inf, label = "95% CI",
+           hjust = 0, vjust = 1.5, fontface = 2, size = 3.4) +
+  annotate("text", x = x_col3, y = Inf, label = "p-value",
+           hjust = 0, vjust = 1.5, fontface = 2, size = 3.4) +
+
+  scale_x_continuous(limits = c(x_min, x_max),
+                     expand = expansion(mult = c(0.02, 0.05))) +
+  labs(
+    x = "Difference in PROMIS T-Scores (Mixed Model)",
+    y = "Comparison"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    axis.text.y  = element_text(size = 11),
+    axis.text.x  = element_text(size = 11),
+    axis.title.x = element_text(size = 13),
+    axis.title.y = element_text(size = 13),
+    plot.margin  = margin(10, 30, 10, 10)
+  )
+
+forestplot
+
+
+
+```

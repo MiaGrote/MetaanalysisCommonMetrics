@@ -8,7 +8,6 @@ date: "2024-08-30"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
 # lineare gemischte Modelle 
 ```{r, echo=FALSE}
 #install.packages("pbkrtest")
@@ -17,16 +16,19 @@ library(lme4)
 library(emmeans)
 library(Matrix)
 
-interceptonlymodel <- lmer(formula = d ~ 1 + (1|Study), weights = groupsize, data = results3)
+library(emmeans)
 
-summary(interceptonlymodel)
-emmeans(interceptonlymodel, ~1)
+m0 <- lmer(d ~ 1 + (1|Study), weights = groupsize, data = results3)
+emm_overall <- emmeans(m0, ~ 1, data = results3)
+
+summary(emm_overall) 
+
 
 
 ```
 
 ## Hinzufügen eines Level-1 Prädiktors
-Wir wollen natürlich herausfinden, woran es liegen könnte, dass die Studien unterschiedliche Differenzen haben.
+Wir wollen herausfinden, woran es liegen könnte, dass die Studien unterschiedliche Differenzen haben.
 
 Hypothese 1: Die Differenz hängt mit der Fragebogenkombination zusammen.
 
@@ -98,12 +100,11 @@ Wir wollen herausfinden, woran es liegen könnte, dass die Studien unterschiedli
 Hypothese 1: Die Differenz hängt mit der Fragebogenkombination zusammen.
 
 
-
 ```{r, echo=FALSE}
 
 # install.packages("knitr")
 # install.packages("kableExtra")
-# install.packages("lme4")
+#install.packages("lme4")
 
 library(knitr)
 library(kableExtra)

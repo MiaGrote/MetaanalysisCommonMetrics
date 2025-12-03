@@ -13,24 +13,21 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r, echo=FALSE}
 
 
+library(here)      
 library(readxl)
 library(dplyr)
 library(openxlsx)
 
-file_path <- "../01_data/SUBSET_BDI.xlsx"
-SUBSET_BDI <- read.xlsx(file_path)  %>% unique()
+path_data <- function(file) {
+  here("01_data", file)
+}
 
-file_path <- "../01_data/SUBSET_CESD.xlsx"
-SUBSET_CESD <- read.xlsx(file_path) %>% unique()
+SUBSET_BDI    <- read.xlsx(path_data("SUBSET_BDI.xlsx"))    %>% unique()
+SUBSET_CESD   <- read.xlsx(path_data("SUBSET_CESD.xlsx"))   %>% unique()
+SUBSET_HADS   <- read.xlsx(path_data("SUBSET_HADS.xlsx"))   %>% unique()
+SUBSET_PHQ    <- read.xlsx(path_data("SUBSET_PHQ.xlsx"))    %>% unique()
+SUBSET_PROMIS <- read.xlsx(path_data("SUBSET_PROMIS.xlsx")) %>% unique()
 
-file_path <- "../01_data/SUBSET_HADS.xlsx"
-SUBSET_HADS <- read.xlsx(file_path) %>% unique()
-
-file_path <- "../01_data/SUBSET_PHQ.xlsx"
-SUBSET_PHQ <- read.xlsx(file_path) %>% unique()
-
-file_path <- "../01_data/SUBSET_PROMIS.xlsx"
-SUBSET_PROMIS <- read.xlsx(file_path) %>% unique()
 
 ```
 
@@ -73,64 +70,21 @@ results[[x]][, c("Study", "Variable", "measure_1", "measure_2", "value_1", "valu
 
 str(results2)
 results3 = bind_rows(results2)
-
-
 results3$groupsize = as.numeric(results3$groupsize)
 
-
 ```
 
-# Scatterplot
 
-```{r, echo=FALSE}
-library(ggplot2)
-
-
-ggplot(results3, aes(x = value_1, value_2)) + geom_point() + facet_grid(measure_1 ~ measure_2) + geom_abline() + geom_smooth() + theme_minimal()
-
-Scatterplot<- ggplot(results3, aes(x = value_1, y = value_2)) + 
-  geom_point(aes(size = groupsize)) + 
-  facet_grid(measure_1 ~ measure_2) + 
-  geom_abline(intercept = 0, slope = 1, color = "black") + 
-  theme_minimal() +
-  labs(
-    title = "Comparison of Values across Different Measures",  # Add a title
-    subtitle = "Size of points reflects group size",  # Add a subtitle
-    x = "Value 1 (Unit)",  # Descriptive x-axis label
-    y = "Value 2 (Unit)",  # Descriptive y-axis label
-    size = "Group Size"  # Label for the size legend
-  ) 
-
-Scatterplot
-
-#ggsave("Scatterplot.png", plot = Scatterplot, width = 10, height = 8, dpi = 300)
-
-
-```
-
-# Blant Altman plot
-
-
+# Figure 2: Blant Altman plot
 
 ```{r, echo=FALSE}
 results3$m = (results3$value_1 + results3$value_2)/2
 results3$d = (results3$value_1 - results3$value_2)
-
-ggplot(results3, aes(x = m, y = d)) + geom_point()+ facet_grid(measure_1 ~ measure_2)
-
 results4 = results3 %>% group_by(measure_1, measure_2) %>% summarise(mean1 = mean(d), wgt_mean = wtd.mean(d, w = groupsize, na.rm = T),
                                                                      sd = sd(d), wtd_sd = sqrt(wtd.var(d, w = groupsize)),
                                                                      lo = mean1-1.96*sd, hi = mean1+1.96*sd,
                                                                      wtd_lo = wgt_mean-1.96*wtd_sd, wtd_hi = wgt_mean+1.96*wtd_sd)
 
-# Filter out rows with missing or out-of-range values
-results4_filtered <- results4 %>%
-  filter(!is.na(mean1) & mean1 >= -20 & mean1 <= 20,
-         !is.na(lo) & lo >= -20 & lo <= 20,
-         !is.na(hi) & hi >= -20 & hi <= 20)
-
-
-#sw
 
 counts <- results3 %>%
   dplyr::count(measure_1, measure_2, name = "n")
@@ -177,12 +131,12 @@ geom_text(data = results4,
 
 Weighted
 
-ggsave("Figure_2.png", plot = Weighted, width = 10, height = 8, dpi = 300)
+ggsave("Figure_2.jpeg", plot = Weighted, width = 10, height = 8, dpi = 300)
 
 
 ```
 
-# Difference vs. Group size
+# Figure 3: Difference vs. Group size
 
 ```{r, echo=FALSE}
 d_groupsize <- ggplot(results3, aes(x = groupsize, y = d)) +
@@ -208,59 +162,21 @@ d_groupsize <- ggplot(results3, aes(x = groupsize, y = d)) +
   )
 d_groupsize
 
-#ggsave("Figure_3.png", plot = d_groupsize, width = 10, height = 8, dpi = 300)
-ggsave("Figure_3.pdf", plot = d_groupsize, width = 10, height = 8, units = "in")
+ggsave("Figure_3.jpeg", plot = d_groupsize, width = 10, height = 8, units = "in")
 
 
 ```
 
-# Difference vs. Group size facets
+
 
 ```{r, echo=FALSE}
-# Daten filtern, um Ausreißer zu entfernen, deren Gruppengröße über 2000 liegt
-results3_filtered <- subset(results3, groupsize <= 2000)
 
-d_groupsize_facet <- ggplot(results3_filtered, aes(x = groupsize, y = d)) +
-  geom_point(size = 1) +  # Add points to visualize individual observations, smaller size
-  geom_smooth(method = "loess", se = FALSE, color = "blue", size = 0.5) +  # Add a smooth line only, thinner line
-  geom_ribbon(aes(x = groupsize, ymin = -1, ymax = 1), fill = "grey", alpha = .2) +
-  facet_grid(measure_1 ~ measure_2) +
-  scale_x_continuous(limits = c(0, 1500)) +  # Set x-axis limits from 0 to 1500
-  labs(
-    x = "Group Size",
-    y = "Differences Between Questionnaire Pairs",
-    title = "Analysis of Group Size vs. Differences",
-    subtitle = "Faceted by Measurement Variables, Outliers Removed"
-  ) +
-  theme_minimal() +
-  theme(
-    plot.title = element_text(size = 20, face = "bold"),     # Title font size
-    plot.subtitle = element_text(size = 20),                 # Subtitle font size
-    axis.title.x = element_text(size = 16),                  # X-axis title font size
-    axis.title.y = element_text(size = 16),                  # Y-axis title font size
-    axis.text.x = element_text(size = 14),                   # X-axis text font size
-    axis.text.y = element_text(size = 14),                   # Y-axis text font size
-    plot.caption = element_text(size = 12)                   # Caption font size
-  )
+library(dplyr)
+library(ggplot2)
 
-d_groupsize_facet
-
-# Grafik speichern
-#ggsave("d_groupsize_facet.png", d_groupsize_facet, width = 10, height = 8, dpi = 300)
-
-```
-
-# Forest Plot
-
-```{r, echo=FALSE}
-library(gt)
-library(patchwork)
-
-
-# Vergleichsbeschriftungen erzeugen
-results4$Comparison_base <- paste(results4$measure_1, "x", results4$measure_2)
-
+# ------------------------------------------------------------
 # Studienanzahlen definieren
+# ------------------------------------------------------------
 study_counts <- c(
   "BDI x CESD"    = 7,
   "BDI x HADS"    = 9,
@@ -274,7 +190,9 @@ study_counts <- c(
   "PHQ x PROMIS"  = 6
 )
 
+# ------------------------------------------------------------
 # Gruppenanzahlen definieren
+# ------------------------------------------------------------
 group_counts <- c(
   "BDI x CESD"    = 23,
   "BDI x HADS"    = 32,
@@ -288,48 +206,108 @@ group_counts <- c(
   "PHQ x PROMIS"  = 6
 )
 
-# Kombinierte Comparison-Beschriftung erstellen
-results4$Comparison <- paste0(
-  results4$Comparison_base,
-  " (studies n=", study_counts[results4$Comparison_base],
-  ", groups n=", group_counts[results4$Comparison_base], ")"
-)
+# ------------------------------------------------------------
+# 1) CI-Existenz bestimmen
+# ------------------------------------------------------------
+results4 <- results4 %>%
+  mutate(
+    no_ci = !is.finite(ci_lo) | !is.finite(ci_hi) | (round(ci_lo, 6) == round(ci_hi, 6))
+  )
 
-# Nach wgt_mean sortieren und Reihenfolge für Plot fixieren
-results4 <- results4[order(results4$wgt_mean), ]
+# ------------------------------------------------------------
+# 2) Labels erzeugen
+# ------------------------------------------------------------
+results4 <- results4 %>%
+  mutate(
+    est_lbl = sprintf("%.2f", est),
+    ci_lbl  = ifelse(no_ci, "—", sprintf("[%.2f, %.2f]", ci_lo, ci_hi))
+  )
+
+# ------------------------------------------------------------
+# 3) Vergleichs-Label + Study/Group counts einfügen
+# ------------------------------------------------------------
+results4 <- results4 %>%
+  mutate(
+    Comparison_base = paste(measure_1, "x", measure_2),
+    study_n = study_counts[Comparison_base],
+    group_n = group_counts[Comparison_base],
+    Comparison = sprintf("%s (studies n=%d, groups n=%d)",
+                         Comparison_base, study_n, group_n)
+  )
+
+# ------------------------------------------------------------
+# Sortieren
+# ------------------------------------------------------------
+results4 <- results4[order(results4$est), ]
 results4$Comparison <- factor(results4$Comparison, levels = results4$Comparison)
 
-# Forestplot erstellen
-library(ggplot2)
+# ------------------------------------------------------------
+# 4) Dynamische Positionen (Wide layout)
+# ------------------------------------------------------------
+x_data_max <- max(c(results4$est, results4$ci_hi[!results4$no_ci]), na.rm = TRUE)
+x_data_min <- min(c(results4$est, results4$ci_lo[!results4$no_ci]), na.rm = TRUE)
 
-forestplot <- ggplot(results4, aes(x = wgt_mean, y = Comparison)) +
-  geom_point(size = 3) +
-  geom_errorbarh(aes(xmin = wtd_lo, xmax = wtd_hi), height = 0.2) +
-  geom_vline(xintercept = 0, linetype = "dashed", color = "grey") +
-  scale_x_continuous(limits = c(-10, 10)) +
-  theme_minimal() +
+rng <- x_data_max - x_data_min
+gap <- ifelse(is.finite(rng) && rng > 0, rng * 0.40, 2)
+
+x_col1 <- x_data_max + gap * 1.0
+x_col2 <- x_col1    + gap * 1.25
+
+x_max  <- x_col2 + gap * 1.2
+x_min  <- x_data_min - gap * 0.30
+
+# ------------------------------------------------------------
+# 5) Forest Plot (wide)
+# ------------------------------------------------------------
+figure_4 <- ggplot(results4, aes(x = est, y = Comparison)) +
+
+  geom_errorbarh(
+    data = subset(results4, !no_ci),
+    aes(xmin = ci_lo, xmax = ci_hi),
+    height = 0.26,
+    linewidth = 1
+  ) +
+
+  geom_point(size = 4.6, shape = 21, fill = "black") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey50") +
+
+  geom_text(aes(x = x_col1, label = est_lbl), hjust = 0, size = 7) +
+  geom_text(aes(x = x_col2, label = ci_lbl),  hjust = 0, size = 7) +
+
+  annotate("text", x = x_col1, y = Inf, label = "Point estimate",
+           hjust = 0, vjust = 1.4, fontface = "bold", size = 6) +
+  annotate("text", x = x_col2, y = Inf, label = "95% CI",
+           hjust = 0, vjust = 1.4, fontface = "bold", size = 6) +
+
+  scale_x_continuous(
+    limits = c(x_min, x_max),
+    expand = expansion(mult = c(0.02, 0.05))
+  ) +
+
   labs(
     x = "Difference in PROMIS T-Scores",
     y = "Comparison"
   ) +
+
+  theme_minimal(base_size = 18) +
   theme(
-    plot.title = element_text(size = 20, face = "bold"),
-    plot.subtitle = element_text(size = 20),
-    axis.title.x = element_text(size = 16),
-    axis.title.y = element_text(size = 16),
-    axis.text.x = element_text(size = 14),
-    axis.text.y = element_text(size = 14),
-    plot.caption = element_text(size = 12)
+    axis.text.y  = element_text(size = 22),
+    axis.text.x  = element_text(size = 14),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 20),
+    plot.margin = margin(20, 260, 20, 20)
   )
 
-# Plot anzeigen
-print(forestplot)
+figure_4
 
-# Optional: Grafik speichern
-#ggsave("Figure_4.jpg", forestplot, width = 10, height = 8, dpi = 300)
-ggsave("Figure_4.pdf", plot = forestplot, width = 10, height = 8, units = "in")
+# optional speichern
+ggsave("figure_4.jpeg", plot = figure_4,
+       width = 24, height = 9, units = "in", dpi = 300)
+
 
 
 
 
 ```
+
+
