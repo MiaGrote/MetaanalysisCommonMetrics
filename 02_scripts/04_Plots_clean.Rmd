@@ -170,133 +170,100 @@ ggsave("Figure_3.jpeg", plot = d_groupsize, width = 10, height = 8, units = "in"
 
 
 ```{r, echo=FALSE}
-
 library(dplyr)
 library(ggplot2)
 
-# ------------------------------------------------------------
-# Studienanzahlen definieren
-# ------------------------------------------------------------
+# Convert lmme to data frame
+df <- lmme %>%
+  as.data.frame() %>%
+  rename(
+    Comparison_base = questionnaire_pair,
+    Estimate = emmean,
+    lo = lower.CL,
+    hi = upper.CL
+  ) %>%
+  mutate(
+    t_value = Estimate / SE,
+    p_value = 2 * pt(abs(t_value), df = df, lower.tail = FALSE)
+  )
+
+
 study_counts <- c(
-  "BDI x CESD"    = 7,
-  "BDI x HADS"    = 9,
-  "BDI x PHQ"     = 20,
-  "BDI x PROMIS"  = 1,
-  "CESD x HADS"   = 14,
-  "CESD x PHQ"    = 9,
-  "CESD x PROMIS" = 1,
-  "HADS x PHQ"    = 19,
-  "HADS x PROMIS" = 1,
-  "PHQ x PROMIS"  = 6
+  "BDI CESD"    = 7,
+  "BDI HADS"    = 9,
+  "BDI PHQ"     = 20,
+  "BDI PROMIS"  = 1,
+  "CESD HADS"   = 14,
+  "CESD PHQ"    = 9,
+  "CESD PROMIS" = 1,
+  "HADS PHQ"    = 19,
+  "HADS PROMIS" = 1,
+  "PHQ PROMIS"  = 6
 )
 
-# ------------------------------------------------------------
-# Gruppenanzahlen definieren
-# ------------------------------------------------------------
 group_counts <- c(
-  "BDI x CESD"    = 23,
-  "BDI x HADS"    = 32,
-  "BDI x PHQ"     = 38,
-  "BDI x PROMIS"  = 2,
-  "CESD x HADS"   = 36,
-  "CESD x PHQ"    = 27,
-  "CESD x PROMIS" = 1,
-  "HADS x PHQ"    = 38,
-  "HADS x PROMIS" = 1,
-  "PHQ x PROMIS"  = 6
+  "BDI CESD"    = 23,
+  "BDI HADS"    = 32,
+  "BDI PHQ"     = 38,
+  "BDI PROMIS"  = 2,
+  "CESD HADS"   = 36,
+  "CESD PHQ"    = 27,
+  "CESD PROMIS" = 1,
+  "HADS PHQ"    = 38,
+  "HADS PROMIS" = 1,
+  "PHQ PROMIS"  = 6
 )
 
-# ------------------------------------------------------------
-# 1) CI-Existenz bestimmen
-# ------------------------------------------------------------
-results4 <- results4 %>%
+df <- df %>%
   mutate(
-    no_ci = !is.finite(ci_lo) | !is.finite(ci_hi) | (round(ci_lo, 6) == round(ci_hi, 6))
-  )
-
-# ------------------------------------------------------------
-# 2) Labels erzeugen
-# ------------------------------------------------------------
-results4 <- results4 %>%
-  mutate(
-    est_lbl = sprintf("%.2f", est),
-    ci_lbl  = ifelse(no_ci, "—", sprintf("[%.2f, %.2f]", ci_lo, ci_hi))
-  )
-
-# ------------------------------------------------------------
-# 3) Vergleichs-Label + Study/Group counts einfügen
-# ------------------------------------------------------------
-results4 <- results4 %>%
-  mutate(
-    Comparison_base = paste(measure_1, "x", measure_2),
+    est_lbl = sprintf("%.2f", Estimate),
+    ci_lbl  = sprintf("[%.2f, %.2f]", lo, hi),
+    p_lbl   = ifelse(p_value < 0.001, "p < 0.001", sprintf("p = %.3f", p_value)),
     study_n = study_counts[Comparison_base],
     group_n = group_counts[Comparison_base],
     Comparison = sprintf("%s (studies n=%d, groups n=%d)",
                          Comparison_base, study_n, group_n)
   )
 
-# ------------------------------------------------------------
-# Sortieren
-# ------------------------------------------------------------
-results4 <- results4[order(results4$est), ]
-results4$Comparison <- factor(results4$Comparison, levels = results4$Comparison)
+df <- df[order(df$Estimate), ]
+df$Comparison <- factor(df$Comparison, levels = df$Comparison)
 
-# ------------------------------------------------------------
-# 4) Dynamische Positionen (Wide layout)
-# ------------------------------------------------------------
-x_data_max <- max(c(results4$est, results4$ci_hi[!results4$no_ci]), na.rm = TRUE)
-x_data_min <- min(c(results4$est, results4$ci_lo[!results4$no_ci]), na.rm = TRUE)
-
+# Dynamic spacing
+x_data_max <- max(c(df$Estimate, df$hi))
+x_data_min <- min(c(df$Estimate, df$lo))
 rng <- x_data_max - x_data_min
-gap <- ifelse(is.finite(rng) && rng > 0, rng * 0.40, 2)
+gap <- rng * 0.40
 
 x_col1 <- x_data_max + gap * 1.0
 x_col2 <- x_col1    + gap * 1.25
-
-x_max  <- x_col2 + gap * 1.2
+x_col3 <- x_col2    + gap * 0.9
+x_max  <- x_col3 + gap * 0.8
 x_min  <- x_data_min - gap * 0.30
 
-# ------------------------------------------------------------
-# 5) Forest Plot (wide)
-# ------------------------------------------------------------
-figure_4 <- ggplot(results4, aes(x = est, y = Comparison)) +
 
-  geom_errorbarh(
-    data = subset(results4, !no_ci),
-    aes(xmin = ci_lo, xmax = ci_hi),
-    height = 0.26,
-    linewidth = 1
-  ) +
-
+# Final plot
+figure_4 <- ggplot(df, aes(x = Estimate, y = Comparison)) +
+  geom_errorbarh(aes(xmin = lo, xmax = hi),
+                 height = 0.26, linewidth = 1) +
   geom_point(size = 4.6, shape = 21, fill = "black") +
   geom_vline(xintercept = 0, linetype = "dashed", color = "grey50") +
 
   geom_text(aes(x = x_col1, label = est_lbl), hjust = 0, size = 7) +
   geom_text(aes(x = x_col2, label = ci_lbl),  hjust = 0, size = 7) +
+  geom_text(aes(x = x_col3, label = p_lbl),   hjust = 0, size = 7) +
 
-  annotate("text", x = x_col1, y = Inf, label = "Point estimate",
+  annotate("text", x = x_col1, y = Inf, label = "Estimate",
            hjust = 0, vjust = 1.4, fontface = "bold", size = 6) +
   annotate("text", x = x_col2, y = Inf, label = "95% CI",
+           hjust = 0, vjust = 1.4, fontface = "bold", size = 6) +
+  annotate("text", x = x_col3, y = Inf, label = "p-value",
            hjust = 0, vjust = 1.4, fontface = "bold", size = 6) +
 
   scale_x_continuous(
     limits = c(x_min, x_max),
     expand = expansion(mult = c(0.02, 0.05))
   ) +
-
-  labs(
-    x = "Difference in PROMIS T-Scores",
-    y = "Comparison"
-  ) +
-
-  theme_minimal(base_size = 18) +
-  theme(
-    axis.text.y  = element_text(size = 22),
-    axis.text.x  = element_text(size = 14),
-    axis.title.x = element_text(size = 20),
-    axis.title.y = element_text(size = 20),
-    plot.margin = margin(20, 260, 20, 20)
-  )
+  theme_minimal(base_size = 18)
 
 figure_4
 
